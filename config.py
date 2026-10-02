@@ -29,6 +29,21 @@ FIXED_TODAY = None
 # --- Identity verification (ASSUMPTIONS) ---
 MAX_VERIFICATION_ATTEMPTS = 3
 
+# --- Use cases ---
+# Folder names under modules/ that are switched on.
+ENABLED_MODULES = ["collections"]
+
+# --- Collections module (ALL ASSUMPTIONS, placeholders for real policy) ---
+# A payment promise must be dated at most this many days from today.
+PROMISE_MAX_DAYS = 15
+# A promise must cover at least this percentage of the overdue amount.
+PROMISE_MIN_PERCENT = 50
+# Broken promises a customer may have and still register a new one here.
+# 1 means: one new promise after a broken one, then a person takes over.
+MAX_BROKEN_PROMISES = 1
+# Where customers can pay; quoted to the customer after a promise.
+PAYMENT_CHANNELS = "app Banco Azteca, sucursales Banco Azteca o tiendas Elektra"
+
 # --- Demo guardrails ---
 # Maximum customer messages per browser session, to cap API spend on a
 # public link.

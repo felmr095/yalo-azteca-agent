@@ -54,6 +54,16 @@ CUSTOMERS = [
         "payments_days_ago": [37],
     },
     {
+        # Late by 21 days.
+        "full_name": "Juan Carlos Pérez García",
+        "phone": "+52 442 555 0106",
+        "date_of_birth": "1991-05-17",
+        "account": {"product": "Guardadito", "number": "4027660000006789", "balance": 40.00},
+        "loan": {"product": "Préstamo personal", "principal": 10000, "outstanding_balance": 8900,
+                 "weekly_payment": 300, "due_in_days": -21, "amount_overdue": 900},
+        "payments_days_ago": [28, 35],
+    },
+    {
         # Savings only, no loan.
         "full_name": "Rosa Elena Martínez Jiménez",
         "phone": "+52 55 5550 0105",

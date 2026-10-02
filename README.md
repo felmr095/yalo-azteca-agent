@@ -28,11 +28,13 @@ To chat in the terminal instead, the key must be an environment variable:
 
 ## What to edit to change the agent's behaviour
 
-| To change...                         | Edit...               |
-|--------------------------------------|-----------------------|
-| What the agent says and may not say  | `rulebook/shared.md`  |
-| Policy numbers, model, agent name    | `config.py`           |
-| The fake customers                   | `data/seed.py`        |
+| To change...                         | Edit...                             |
+|--------------------------------------|-------------------------------------|
+| Rules for every use case             | `rulebook/shared.md`                |
+| Rules for one use case               | `modules/<name>/rulebook.md`        |
+| Policy numbers, model, agent name    | `config.py`                         |
+| The fake customers                   | `data/seed.py`                      |
+| A use case's own fake data           | `modules/<name>/seed.py`            |
 
 Rulebook and config changes apply on the next message. Seed changes apply
 after pressing "Reset conversation and data" in the sidebar.
@@ -55,11 +57,34 @@ after pressing "Reset conversation and data" in the sidebar.
 | `core/db.py`            | The mock bank's core tables.                             |
 | `core/clock.py`         | "Today's date", freezable for tests.                     |
 | `data/seed.py`          | Fake customers; `python -m data.seed` writes `bank.db`.  |
-| `tests/test_policy.py`  | Rule checks that run without the model.                  |
+| `core/modules.py`       | The contract a use case must satisfy to plug in.         |
+| `modules/collections/`  | The collections use case (see below).                    |
+| `tests/run.py`          | The test runner.                                         |
+| `DECISIONS.md`          | Open and settled decisions.                              |
+
+## Adding a use case
+
+A use case is a folder under `modules/`. Copy `modules/collections/` as a
+template. It contains:
+
+| File                    | What it holds                                            |
+|-------------------------|----------------------------------------------------------|
+| `__init__.py`           | `MODULE`: the name, tools, rulebook and outbound reason. |
+| `rulebook.md`           | This use case's rules, in plain text.                    |
+| `tools.py`              | Its tools, with policy enforced in code.                 |
+| `seed.py`               | Its own tables and fake data.                            |
+| `test_policy.py`        | Rule checks that run without the model.                  |
+| `test_conversations.py` | Scripted conversations against the real model.           |
+
+Then add the folder name to `ENABLED_MODULES` and its policy numbers to
+`config.py`. Nothing under `core/` needs to change.
 
 ## Tests
 
-    python -m tests.test_policy
+    python -m tests.run          # policy tests: instant and free
+    python -m tests.run --live   # plus scripted conversations (about 2 min)
+
+Transcripts of the scripted conversations are saved in `logs/tests/`.
 
 To verify as a seed customer in the chat, use the date of birth and the last
 4 digits of the account number from `data/seed.py`. For the first customer:

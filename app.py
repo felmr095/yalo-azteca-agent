@@ -12,6 +12,7 @@ import streamlit as st
 
 import config
 from core.conversation import Conversation
+from core.modules import load_modules
 from data.seed import CUSTOMERS
 
 st.set_page_config(page_title=f"{config.BANK_NAME} · Asistente", page_icon="💬")
@@ -56,21 +57,34 @@ PHONES = {f"{c['full_name']} · {c['phone']}": c["phone"] for c in CUSTOMERS}
 PHONES["Unknown number"] = UNKNOWN_PHONE
 
 
-def start_conversation(phone: str):
-    st.session_state.conversation = Conversation(phone)  # own database copy
+# Who writes first: the customer, or the bank on behalf of a use case.
+STARTS = {"Customer writes first": None}
+for module in load_modules():
+    if module.outbound_reason:
+        STARTS[f"Bank reaches out: {module.name}"] = module.name
+
+
+def start_conversation(phone: str, outbound):
+    conversation = Conversation(phone)  # gets its own copy of the database
+    st.session_state.conversation = conversation
+    st.session_state.started_as = (phone, outbound)
     st.session_state.transcript = []  # (role, text, tool events) to display
     st.session_state.turns = 0
+    if outbound and conversation.session.customer_id:
+        with st.spinner("Escribiendo..."):
+            opening = conversation.open(outbound)
+        st.session_state.transcript.append(("assistant", opening, []))
 
 
 with st.sidebar:
     st.header("Demo controls")
     label = st.selectbox("Chat is coming from", list(PHONES))
     phone = PHONES[label]
-    current = st.session_state.get("conversation")
-    if current is None or current.session.phone != phone:
-        start_conversation(phone)
+    outbound = STARTS[st.selectbox("Conversation starts with", list(STARTS))]
+    if st.session_state.get("started_as") != (phone, outbound):
+        start_conversation(phone, outbound)
     if st.button("Reset conversation and data"):
-        start_conversation(phone)
+        start_conversation(phone, outbound)
 
     conversation = st.session_state.conversation
     session = conversation.session

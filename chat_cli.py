@@ -21,7 +21,12 @@ def pick_phone() -> str:
 
 def main():
     conversation = Conversation(pick_phone())
+    outbound = [m.name for m in conversation.modules if m.outbound_reason]
     print('\nEscriba su mensaje ("salir" para terminar).\n')
+    if outbound and conversation.session.customer_id:
+        answer = input(f"Should the bank write first ({outbound[0]})? [y/N]: ").strip().lower()
+        if answer == "y":
+            print(f"\nAgente: {conversation.open(outbound[0])}\n")
     while True:
         user_text = input("Cliente: ").strip()
         if user_text.lower() in ("salir", "exit", "quit"):

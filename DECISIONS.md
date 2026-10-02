@@ -19,8 +19,6 @@ choice: the default simply stays.
 
 ### Shipping
 
-- [ ] **D3. First git commit.** Nothing is committed yet. *Default: Claude
-  commits only when asked.*
 - [ ] **D4. Push to GitHub and deploy to Streamlit Community Cloud.** Needs
   a GitHub account; steps are in README.md. Best done early, not on day 4.
   *Default: local only.*
@@ -51,6 +49,20 @@ choice: the default simply stays.
   risk in a real bank and would need stronger verification than D7.
   *Default: built as a simple placeholder tool in the collections module.*
 
+- [ ] **D14. Collections policy numbers.** Promise window 15 days,
+  minimum 50% of the overdue amount, one new promise after a broken one.
+  All invented. *Default: these values, in `config.py`.*
+- [ ] **D15. Payment channels quoted to customers.** *Default: "app Banco
+  Azteca, sucursales Banco Azteca o tiendas Elektra", an assumption to
+  confirm.*
+- [ ] **D16. Using the customer's name in the outbound opening.** The agent
+  asks "¿Hablo con el señor José Luis Ramírez Torres?" before verifying.
+  That reveals the person banks with Banco Azteca, but nothing about the
+  debt. *Default: full name is used.*
+- [ ] **D17. Time of day.** The agent does not know the time, so it guesses
+  between "buen día" and "buenas tardes". *Default: left as is; fixable by
+  giving it the clock.*
+
 ### Demo
 
 - [ ] **D12. Demo script and backup.** A rehearsed script with known
@@ -65,6 +77,8 @@ choice: the default simply stays.
 
 ## Done
 
+- [x] **D3. First git commit** (2026-10-02): done; Claude commits at each
+  milestone from now on.
 - [x] **Stack** (2026-10-02): Python, Claude API with a hand-written tool
   loop, SQLite, Streamlit. No agent framework.
 - [x] **Who opens the collections conversation** (2026-10-02): the agent
