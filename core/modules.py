@@ -26,6 +26,7 @@ class Module:
     outbound_reason: Optional[str] = None
     # Called as outbound_check(conn, customer_id) before the bank starts a
     # conversation. Returns why it must not start one now, or None if it may.
+    # The reason is shown on the demo screen after "The bank did not write: ".
     outbound_check: Optional[Callable] = None
     # Called as outcome(conn, customer_id) for the outcome summary. Returns
     # {label: text} describing what the module's tables hold for the customer.

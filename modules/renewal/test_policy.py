@@ -259,13 +259,17 @@ def test_decline_is_recorded_and_stops_new_offers():
     assert json.loads(text)["no_new_offer_before"] == in_days(config.RENEWAL_REOFFER_DAYS)
     assert len(c.conn.execute("SELECT * FROM renewal_declines WHERE customer_id = ?",
                               (c.session.customer_id,)).fetchall()) == 1
-    assert "No new offer before" in outbound_refusal(c)
+    assert outbound_refusal(c) == (
+        f"the customer declined an offer 0 days ago; no new offer for "
+        f"{config.RENEWAL_REOFFER_DAYS} more days")
 
 
 def test_bank_may_not_offer_again_within_the_waiting_period():
     # Sofía declined 10 days ago.
     c = new_conversation("sofia", verified=True)
-    assert in_days(config.RENEWAL_REOFFER_DAYS - 10) in outbound_refusal(c)
+    assert outbound_refusal(c) == (
+        f"the customer declined an offer 10 days ago; no new offer for "
+        f"{config.RENEWAL_REOFFER_DAYS - 10} more days")
     # She may still ask for a loan herself.
     found = eligibility(c)
     assert found["eligible"] and "recently_declined_or_applied" in found
@@ -283,4 +287,4 @@ def test_started_application_also_stops_new_offers():
     c = new_conversation("carmen", verified=True)
     quote(c)
     apply(c)
-    assert "No new offer before" in outbound_refusal(c)
+    assert "started an application" in outbound_refusal(c)

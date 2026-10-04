@@ -75,6 +75,16 @@ conversation**, a new lending module.
 
 ## Done
 
+- [x] **D29. Offers computed are stored** (2026-10-04): every catch-up offer
+  worked out for a customer is kept in its own table
+  (`regularization_offers`), accepted or not, so the outcome summary can
+  show it. The customer is committed to nothing until a promise is
+  registered.
+- [x] **D30. Blocked contacts are part of the demo** (2026-10-04): picking a
+  customer selects the start their story calls for. For Ana Karen, Ricardo
+  Daniel and Sofía Alejandra that start is refused (collections hold, or
+  the 30-day wait after a decline); the chat area and the Outcome section
+  say why in one plain line.
 - [x] **D27. Credit on the Anthropic account** (2026-10-04): the API refused
   every call for a while ("credit balance is too low"). Felipe added
   credit; calls work again.
@@ -160,8 +170,11 @@ conversation**, a new lending module.
   transfer and collector.
 - [x] **D16. Name in the outbound opening** (2026-10-03): first name only,
   no amounts before verification.
-- [x] **D17. Time of day** (2026-10-03): inject today's date and time into the
-  rulebook every turn; seed all dates relative to the run date.
+- [x] **D17. Time of day** (2026-10-03, built 2026-10-04): the rulebook is
+  given today's date and the time in Mexico City on every turn, with the
+  greeting that goes with it; all seed dates are relative to the run date.
+  Log and ticket timestamps are in Mexico City time too. Before this, on
+  the live server (which runs on UTC) the agent said "buen día" at 17:17.
 - [x] **D3. First git commit** (2026-10-02): done; Claude commits at each
   milestone.
 - [x] **Stack** (2026-10-02): Python, Claude API with a hand-written tool

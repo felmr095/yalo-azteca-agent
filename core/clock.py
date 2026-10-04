@@ -22,6 +22,17 @@ def today() -> date:
     return now().date()
 
 
+def timestamp() -> str:
+    """The date and time now, to the second, for logs and tickets."""
+    return now().replace(tzinfo=None).isoformat(timespec="seconds")
+
+
+def plain_date(iso_date: str) -> str:
+    """A date as a person would say it: "7 October"."""
+    day = date.fromisoformat(iso_date)
+    return f"{day.day} {day:%B}"
+
+
 def within_contact_hours() -> bool:
     """May the bank start a conversation at this hour?"""
     return config.CONTACT_HOUR_START <= now().hour < config.CONTACT_HOUR_END

@@ -1,7 +1,8 @@
 """Records everything that happens in a conversation.
 
 Each event (customer message, agent reply, tool call, tool result, outcome)
-is one line of JSON in logs/<session_id>.jsonl, with a timestamp. The same
+is one line of JSON in logs/<session_id>.jsonl, with a timestamp in Mexico
+City time, wherever the server runs. The same
 events are kept in memory so the chat screen can show and download them,
 because files do not survive restarts on Streamlit Community Cloud.
 """
@@ -9,20 +10,21 @@ because files do not survive restarts on Streamlit Community Cloud.
 import json
 import os
 import uuid
-from datetime import datetime
+
+from core import clock
 
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
 
 
 class ConversationLog:
     def __init__(self, directory: str = LOG_DIR):
-        self.session_id = datetime.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]
+        self.session_id = clock.now().strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]
         self.events = []
         self.path = os.path.join(directory, f"{self.session_id}.jsonl")
 
     def record(self, event_type: str, **data) -> None:
         event = {
-            "ts": datetime.now().isoformat(timespec="seconds"),
+            "ts": clock.timestamp(),
             "session_id": self.session_id,
             "type": event_type,
             **data,

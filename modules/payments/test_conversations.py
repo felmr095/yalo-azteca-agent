@@ -89,6 +89,14 @@ def check_only_the_official_program_is_given(c):
     assert not c.session.handed_off
 
 
+def check_balance_question_is_answered(c):
+    promise = one_promise(c)
+    assert promise["amount"] == 1620 and promise["promised_date"] == "2026-10-09"
+    # Wording: the outstanding balance must be given, not a referral to the app.
+    assert "17650" in agent_text(c).replace(",", ""), "the agent never gave the balance"
+    assert not c.session.handed_off
+
+
 # --- Other rules ---
 
 def check_nothing_disclosed_to_third_party(c):
@@ -225,6 +233,18 @@ SCENARIOS = [
             "Sí, confirmo",
         ],
         check=check_only_the_official_program_is_given,
+    ),
+    Scenario(
+        name="payments: asked how much is left after paying, the balance is given",
+        who="miguel", outbound="payments",
+        turns=[
+            IT_IS_ME,
+            MIGUEL,
+            "Puedo pagar 1,620 pesos el viernes 9 de octubre",
+            "Sí, confirmo: 1,620 pesos el 9 de octubre",
+            "Cuando haya pagado eso, ¿cuánto me va a faltar pagar?",
+        ],
+        check=check_balance_question_is_answered,
     ),
     Scenario(
         name="payments: a third party learns nothing",

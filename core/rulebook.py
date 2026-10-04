@@ -11,6 +11,7 @@ import os
 from typing import List, Optional
 
 import config
+from core import clock
 from core.clock import today
 
 SHARED_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "rulebook", "shared.md")
@@ -29,5 +30,9 @@ def _read(path: str) -> str:
 def build_system_prompt(modules: Optional[List] = None) -> str:
     sections = [_read(SHARED_FILE)]
     sections.extend(_read(m.rulebook_file) for m in modules or [])
-    sections.append(f"# Today\n\nToday's date is {today().isoformat()} ({today():%A}).")
+    sections.append(
+        f"# Today\n\nToday's date is {today().isoformat()} ({today():%A}). The time is "
+        f"{clock.now():%H:%M} ({config.TIME_ZONE}). Greet with \"buenos días\" before 12:00, "
+        "\"buenas tardes\" from 12:00 to 19:00, and \"buenas noches\" after that."
+    )
     return "\n\n".join(sections).format_map(_config_values())

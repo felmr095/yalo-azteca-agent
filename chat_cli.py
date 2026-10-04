@@ -29,7 +29,7 @@ def main():
             try:
                 print(f"\nAgente: {conversation.open(outbound[0])}\n")
             except OutboundNotAllowed as e:
-                print(f"\nThe bank did not start this conversation. {e}\n")
+                print(f"\nThe bank did not write: {e}.\n")
     while True:
         user_text = input("Cliente: ").strip()
         if user_text.lower() in ("salir", "exit", "quit"):

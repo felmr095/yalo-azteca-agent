@@ -52,16 +52,41 @@ os.environ["ANTHROPIC_API_KEY"] = api_key
 
 
 # --- Per-session state ---
-UNKNOWN_PHONE = "+52 00 0000 0000"
+UNKNOWN_PHONE, UNKNOWN_LABEL = "+52 00 0000 0000", "Unknown number"
 PHONES = {f"{c['full_name']} · {c['phone']}": c["phone"] for c in CUSTOMERS}
-PHONES["Unknown number"] = UNKNOWN_PHONE
-
+PHONES[UNKNOWN_LABEL] = UNKNOWN_PHONE
+FIRST_NAMES = {c["phone"]: c["first_name"] for c in CUSTOMERS}
 
 # Who writes first: the customer, or the bank on behalf of a use case.
-STARTS = {"Customer writes first": None}
+CUSTOMER_FIRST = "Customer writes first"
+STARTS = {CUSTOMER_FIRST: None}
 for module in load_modules():
     if module.outbound_reason:
         STARTS[f"Bank reaches out: {module.name}"] = module.name
+
+# The start each customer's story calls for (set in data/seed.py). Picking a
+# customer selects it; the dropdown can still be changed.
+DEFAULT_START = {UNKNOWN_LABEL: CUSTOMER_FIRST}
+for c in CUSTOMERS:
+    start = f"Bank reaches out: {c.get('demo_start')}"
+    DEFAULT_START[f"{c['full_name']} · {c['phone']}"] = start if start in STARTS else CUSTOMER_FIRST
+
+
+def shown(text: str) -> str:
+    """Streamlit reads $...$ as a formula, so amounts would turn into one.
+    Escape the dollar signs so they appear as written."""
+    return text.replace("$", "\\$")
+
+
+def api_problem(error: anthropic.APIError) -> str:
+    """A model API failure in words, without leaking the key."""
+    if isinstance(error, anthropic.AuthenticationError):
+        return "The API key was rejected. Check ANTHROPIC_API_KEY."
+    if isinstance(error, anthropic.RateLimitError):
+        return "Rate limit reached. Wait a minute and try again."
+    if isinstance(error, anthropic.APIStatusError):
+        return f"The model API returned an error ({error.status_code}): {error.message}"
+    return "Could not reach the model API. Check the internet connection."
 
 
 def start_conversation(phone: str, outbound):
@@ -70,21 +95,34 @@ def start_conversation(phone: str, outbound):
     st.session_state.started_as = (phone, outbound)
     st.session_state.transcript = []  # (role, text, tool events) to display
     st.session_state.turns = 0
-    st.session_state.outbound_blocked = None  # why the bank did not write first
+    st.session_state.notice = None    # (kind, one line shown above the chat)
     if outbound:
         try:
             with st.spinner("Escribiendo..."):
                 opening = conversation.open(outbound)
             st.session_state.transcript.append(("assistant", opening, []))
         except OutboundNotAllowed as e:
-            st.session_state.outbound_blocked = str(e)
+            who = FIRST_NAMES.get(phone)
+            st.session_state.notice = ("info", (
+                f"The bank did not write{' to ' + who if who else ''}: {e}. Switch to "
+                f"'{CUSTOMER_FIRST}' to "
+                + ("see the customer ask about it." if who else "write from this number.")))
+        except anthropic.APIError as e:
+            st.session_state.notice = ("error", api_problem(e))
+
+
+def use_default_start():
+    st.session_state.start = DEFAULT_START[st.session_state.customer]
 
 
 with st.sidebar:
     st.header("Demo controls")
-    label = st.selectbox("Chat is coming from", list(PHONES))
+    label = st.selectbox("Chat is coming from", list(PHONES), key="customer",
+                         on_change=use_default_start)
+    if "start" not in st.session_state:
+        use_default_start()
     phone = PHONES[label]
-    outbound = STARTS[st.selectbox("Conversation starts with", list(STARTS))]
+    outbound = STARTS[st.selectbox("Conversation starts with", list(STARTS), key="start")]
     if st.session_state.get("started_as") != (phone, outbound):
         start_conversation(phone, outbound)
     if st.button("Reset conversation and data"):
@@ -94,7 +132,7 @@ with st.sidebar:
     session = conversation.session
     st.subheader("Outcome")
     for item, text in conversation.outcome_summary().items():
-        st.write(f"**{item}:** {text.replace('$', chr(92) + '$')}")
+        st.write(f"**{item}:** {shown(text)}")
     st.caption("What the conversation has recorded so far, read from its database after "
                f"every reply. Failed verification attempts: {session.failed_attempts} of "
                f"{config.MAX_VERIFICATION_ATTEMPTS}.")
@@ -114,20 +152,20 @@ def show_tool_events(events):
             if e["type"] == "tool_call":
                 st.markdown(f"**{e['tool']}** `{e['input']}`")
             elif e["is_error"]:
-                st.error(f"Refused: {e['result']}")
+                st.error(shown(f"Refused: {e['result']}"))
             else:
-                st.success(e["result"])
+                st.success(shown(e["result"]))
 
 
 st.title(f"{config.BANK_NAME} · Asistente virtual")
 
-if st.session_state.outbound_blocked:
-    st.info(f"The bank did not start this conversation. {st.session_state.outbound_blocked} "
-            "The customer can still write first.")
+if st.session_state.notice:
+    kind, line = st.session_state.notice
+    (st.error if kind == "error" else st.info)(shown(line))
 
 for role, text, events in st.session_state.transcript:
     with st.chat_message(role):
-        st.write(text)
+        st.write(shown(text))
         show_tool_events(events)
 
 user_text = st.chat_input("Escriba su mensaje")
@@ -137,25 +175,16 @@ if user_text:
         st.stop()
     st.session_state.turns += 1
     st.session_state.transcript.append(("user", user_text, []))
-    st.chat_message("user").write(user_text)
+    st.chat_message("user").write(shown(user_text))
 
     events_before = len(conversation.log.events)
     try:
         with st.spinner("Escribiendo..."):
             reply = conversation.send(user_text)
-    except anthropic.AuthenticationError:
-        st.error("The API key was rejected. Check ANTHROPIC_API_KEY.")
-        st.stop()
-    except anthropic.RateLimitError:
-        st.error("Rate limit reached. Wait a minute and try again.")
-        st.stop()
-    except anthropic.APIStatusError as e:
-        st.error(f"The model API returned an error ({e.status_code}): {e.message}")
-        st.stop()
-    except anthropic.APIConnectionError:
-        st.error("Could not reach the model API. Check the internet connection.")
+    except anthropic.APIError as e:
+        st.error(api_problem(e))
         st.stop()
 
     new_events = conversation.log.events[events_before:]
     st.session_state.transcript.append(("assistant", reply, new_events))
-    st.rerun()  # redraw so the sidebar shows the updated session state
+    st.rerun()  # redraw so the sidebar shows the updated outcome

@@ -20,7 +20,8 @@ from data import seed
 
 class OutboundNotAllowed(Exception):
     """The bank may not start this conversation now. The message says why,
-    for the person running the demo; it is never shown to the customer."""
+    for the person running the demo; it is never shown to the customer. It
+    is written to follow "The bank did not write: ", with no full stop."""
 
 
 class Conversation:
@@ -45,6 +46,7 @@ class Conversation:
 
         self._client = client
         self.messages = []  # the conversation in the API's format
+        self.opening = "the customer writes first"  # for the outcome summary
         self.log.record("session_start", phone=phone, customer_id=self.session.customer_id,
                         modules=[m.name for m in self.modules])
 
@@ -58,7 +60,8 @@ class Conversation:
         Identity comes from the session; everything else is read from the
         database, so it shows what was really recorded, not what was said.
         """
-        summary = {"Identity": "verified" if self.session.verified else "not verified"}
+        summary = {"Opening": self.opening,
+                   "Identity": "verified" if self.session.verified else "not verified"}
         ticket = self.conn.execute(
             "SELECT id, reason FROM handoff_tickets ORDER BY id DESC LIMIT 1").fetchone()
         summary["Handoff"] = (
@@ -83,8 +86,10 @@ class Conversation:
         try:
             note = self.opening_note(module_name)
         except OutboundNotAllowed as e:
+            self.opening = f"the bank did not write ({module_name}): {e}"
             self.log.record("outbound_blocked", module=module_name, reason=str(e))
             raise
+        self.opening = f"the bank wrote first ({module_name})"
         self.log.record("outbound_start", module=module_name)
         return self._agent_turn(note)
 
@@ -97,11 +102,11 @@ class Conversation:
         """
         module = next(m for m in self.modules if m.name == module_name)
         if self.session.customer_id is None:
-            raise OutboundNotAllowed("This phone number does not belong to a customer.")
+            raise OutboundNotAllowed("this phone number does not belong to a customer")
         if config.ENFORCE_CONTACT_HOURS and not within_contact_hours():
             raise OutboundNotAllowed(
-                f"Outside contact hours ({config.CONTACT_HOUR_START}:00 to "
-                f"{config.CONTACT_HOUR_END}:00, {config.TIME_ZONE})."
+                f"it is outside contact hours ({config.CONTACT_HOUR_START}:00 to "
+                f"{config.CONTACT_HOUR_END}:00, {config.TIME_ZONE})"
             )
         if module.outbound_check:
             reason = module.outbound_check(self.conn, self.session.customer_id)
