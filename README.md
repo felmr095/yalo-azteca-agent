@@ -55,21 +55,21 @@ after pressing "Reset conversation and data" in the sidebar.
 | `core/logger.py`        | Writes every event to `logs/<session>.jsonl`.            |
 | `core/rulebook.py`      | Assembles the rulebook and fills in config values.       |
 | `core/db.py`            | The mock bank's core tables.                             |
-| `core/clock.py`         | "Today's date", freezable for tests.                     |
+| `core/clock.py`         | Today's date and the time, in Mexico City time.          |
 | `data/seed.py`          | Fake customers; `python -m data.seed` writes `bank.db`.  |
 | `core/modules.py`       | The contract a use case must satisfy to plug in.         |
-| `modules/collections/`  | The collections use case (see below).                    |
+| `modules/payments/`     | The payment assistant use case.                          |
 | `tests/run.py`          | The test runner.                                         |
 | `DECISIONS.md`          | Open and settled decisions.                              |
 
 ## Adding a use case
 
-A use case is a folder under `modules/`. Copy `modules/collections/` as a
+A use case is a folder under `modules/`. Copy `modules/payments/` as a
 template. It contains:
 
 | File                    | What it holds                                            |
 |-------------------------|----------------------------------------------------------|
-| `__init__.py`           | `MODULE`: the name, tools, rulebook and outbound reason. |
+| `__init__.py`           | `MODULE`: the name, tools, rulebook and outbound rules.  |
 | `rulebook.md`           | This use case's rules, in plain text.                    |
 | `tools.py`              | Its tools, with policy enforced in code.                 |
 | `seed.py`               | Its own tables and fake data.                            |
@@ -82,7 +82,7 @@ Then add the folder name to `ENABLED_MODULES` and its policy numbers to
 ## Tests
 
     python -m tests.run          # policy tests: instant and free
-    python -m tests.run --live   # plus scripted conversations (about 2 min)
+    python -m tests.run --live   # plus scripted conversations (about 1 min)
 
 Transcripts of the scripted conversations are saved in `logs/tests/`.
 

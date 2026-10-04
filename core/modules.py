@@ -24,6 +24,9 @@ class Module:
     # If the bank can start this conversation, a short internal description
     # of why it is reaching out. Never shown to the customer as written.
     outbound_reason: Optional[str] = None
+    # Called as outbound_check(conn, customer_id) before the bank starts a
+    # conversation. Returns why it must not start one now, or None if it may.
+    outbound_check: Optional[Callable] = None
 
 
 def load_modules() -> List[Module]:

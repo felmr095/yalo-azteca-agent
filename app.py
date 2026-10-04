@@ -11,7 +11,7 @@ import anthropic
 import streamlit as st
 
 import config
-from core.conversation import Conversation
+from core.conversation import Conversation, OutboundNotAllowed
 from core.modules import load_modules
 from data.seed import CUSTOMERS
 
@@ -70,10 +70,14 @@ def start_conversation(phone: str, outbound):
     st.session_state.started_as = (phone, outbound)
     st.session_state.transcript = []  # (role, text, tool events) to display
     st.session_state.turns = 0
-    if outbound and conversation.session.customer_id:
-        with st.spinner("Escribiendo..."):
-            opening = conversation.open(outbound)
-        st.session_state.transcript.append(("assistant", opening, []))
+    st.session_state.outbound_blocked = None  # why the bank did not write first
+    if outbound:
+        try:
+            with st.spinner("Escribiendo..."):
+                opening = conversation.open(outbound)
+            st.session_state.transcript.append(("assistant", opening, []))
+        except OutboundNotAllowed as e:
+            st.session_state.outbound_blocked = str(e)
 
 
 with st.sidebar:
@@ -114,6 +118,10 @@ def show_tool_events(events):
 
 
 st.title(f"{config.BANK_NAME} · Asistente virtual")
+
+if st.session_state.outbound_blocked:
+    st.info(f"The bank did not start this conversation. {st.session_state.outbound_blocked} "
+            "The customer can still write first.")
 
 for role, text, events in st.session_state.transcript:
     with st.chat_message(role):

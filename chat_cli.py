@@ -4,7 +4,7 @@ Quicker than the web app for trying out a rulebook change. Tool calls are
 printed as they happen. Type "salir" to quit.
 """
 
-from core.conversation import Conversation
+from core.conversation import Conversation, OutboundNotAllowed
 from data.seed import CUSTOMERS
 
 
@@ -23,10 +23,13 @@ def main():
     conversation = Conversation(pick_phone())
     outbound = [m.name for m in conversation.modules if m.outbound_reason]
     print('\nEscriba su mensaje ("salir" para terminar).\n')
-    if outbound and conversation.session.customer_id:
+    if outbound:
         answer = input(f"Should the bank write first ({outbound[0]})? [y/N]: ").strip().lower()
         if answer == "y":
-            print(f"\nAgente: {conversation.open(outbound[0])}\n")
+            try:
+                print(f"\nAgente: {conversation.open(outbound[0])}\n")
+            except OutboundNotAllowed as e:
+                print(f"\nThe bank did not start this conversation. {e}\n")
     while True:
         user_text = input("Cliente: ").strip()
         if user_text.lower() in ("salir", "exit", "quit"):

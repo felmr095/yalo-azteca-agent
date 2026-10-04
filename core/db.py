@@ -12,6 +12,7 @@ CORE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS customers (
     id            INTEGER PRIMARY KEY,
     full_name     TEXT NOT NULL,
+    first_name    TEXT NOT NULL,          -- all a person is called before verification
     phone         TEXT NOT NULL UNIQUE,   -- the number the chat comes from
     date_of_birth TEXT NOT NULL           -- YYYY-MM-DD
 );
@@ -25,14 +26,17 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 CREATE TABLE IF NOT EXISTS loans (
-    id                  INTEGER PRIMARY KEY,
-    customer_id         INTEGER NOT NULL REFERENCES customers(id),
-    product             TEXT NOT NULL,
-    principal           REAL NOT NULL,
-    outstanding_balance REAL NOT NULL,
-    weekly_payment      REAL NOT NULL,
-    next_due_date       TEXT NOT NULL,    -- in the past means the loan is late
-    amount_overdue      REAL NOT NULL DEFAULT 0
+    id                    INTEGER PRIMARY KEY,
+    customer_id           INTEGER NOT NULL REFERENCES customers(id),
+    product               TEXT NOT NULL,
+    principal             REAL NOT NULL,
+    outstanding_balance   REAL NOT NULL,
+    installment_on_time   REAL NOT NULL,  -- weekly payment when paid by its due date
+    installment_standard  REAL NOT NULL,  -- higher; the on-time discount is lost when late
+    next_due_date         TEXT NOT NULL,  -- when the coming weekly payment is due
+    installments_missed   INTEGER NOT NULL DEFAULT 0,  -- weekly payments now overdue
+    late_interest_accrued REAL NOT NULL DEFAULT 0,
+    has_plan              INTEGER NOT NULL DEFAULT 0   -- 1 if restructured, renewed or on a plan
 );
 
 CREATE TABLE IF NOT EXISTS payments (

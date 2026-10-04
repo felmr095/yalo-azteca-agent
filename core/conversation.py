@@ -7,13 +7,20 @@ core and the use-case modules are assembled.
 
 from typing import Optional
 
+import config
 from core import agent, rulebook
+from core.clock import within_contact_hours
 from core.core_tools import CORE_TOOLS
 from core.logger import ConversationLog
 from core.modules import load_modules
 from core.session import start_session
 from core.tools import ToolRegistry
 from data import seed
+
+
+class OutboundNotAllowed(Exception):
+    """The bank may not start this conversation now. The message says why,
+    for the person running the demo; it is never shown to the customer."""
 
 
 class Conversation:
@@ -53,22 +60,45 @@ class Conversation:
     def open(self, module_name: str) -> str:
         """Have the agent write first, as an outbound contact for a module.
 
+        Raises OutboundNotAllowed if the bank may not contact this customer
+        now.
+        """
+        try:
+            note = self.opening_note(module_name)
+        except OutboundNotAllowed as e:
+            self.log.record("outbound_blocked", module=module_name, reason=str(e))
+            raise
+        self.log.record("outbound_start", module=module_name)
+        return self._agent_turn(note)
+
+    def opening_note(self, module_name: str) -> str:
+        """The internal note that starts an outbound conversation.
+
         The model is told why the bank is reaching out and the account
-        holder's name, so it can ask for the right person. It is told
+        holder's first name, so it can ask for the right person. It is told
         nothing else about the customer.
         """
         module = next(m for m in self.modules if m.name == module_name)
+        if self.session.customer_id is None:
+            raise OutboundNotAllowed("This phone number does not belong to a customer.")
+        if config.ENFORCE_CONTACT_HOURS and not within_contact_hours():
+            raise OutboundNotAllowed(
+                f"Outside contact hours ({config.CONTACT_HOUR_START}:00 to "
+                f"{config.CONTACT_HOUR_END}:00, {config.TIME_ZONE})."
+            )
+        if module.outbound_check:
+            reason = module.outbound_check(self.conn, self.session.customer_id)
+            if reason:
+                raise OutboundNotAllowed(reason)
         owner = self.conn.execute(
-            "SELECT full_name FROM customers WHERE id = ?", (self.session.customer_id,)
+            "SELECT first_name FROM customers WHERE id = ?", (self.session.customer_id,)
         ).fetchone()
-        trigger = (
+        return (
             "[Internal note, not written by the customer] The bank is starting this "
-            f"conversation. Reason: {module.outbound_reason}. Account holder's name: "
-            f"{owner['full_name'] if owner else 'unknown'}. The customer has not "
-            "written anything yet. Write your opening message."
+            f"conversation. Reason: {module.outbound_reason}. Account holder's first "
+            f"name: {owner['first_name']}. The customer has not written anything yet. "
+            "Write your opening message."
         )
-        self.log.record("outbound_start", module=module_name)
-        return self._agent_turn(trigger)
 
     def _agent_turn(self, text: str) -> str:
         if self._client is None:
