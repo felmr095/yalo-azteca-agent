@@ -18,12 +18,10 @@ conversation**, a new lending module.
   reconciled against the planner's spec, merged into `main` and pushed.
   66 policy tests and 16 scripted conversations passed before the merge.
   *Felipe tests the live link; if it is broken, Claude reverts the merge.*
-- [ ] **M5. Renewal module**: eligibility, quote, start application, record
-  decline; the cross-module rule that late customers are never offered
-  credit; five scripted tests. *Built on branch `m5-renewal` (2026-10-04).
-  93 policy tests pass. The 6 scripted conversations are written but have
-  not run: see D27. Not merged: it waits for them and for Felipe's
-  confirmation.*
+- [x] **M5. Renewal module** (2026-10-04): eligibility, quote, start
+  application, record decline; the cross-module rule that late customers
+  are never offered credit. Merged into `main` and pushed. 93 policy tests
+  and all 22 scripted conversations passed before the merge.
 - [ ] **M6. Demo layer**: per-session outcome summary, two rehearsed flows,
   backup recording, today's date and time injected.
 - [ ] **M7. README** (run, test, deploy), an assumptions list generated from
@@ -47,27 +45,6 @@ conversation**, a new lending module.
   https://github.com/felmr095/yalo-azteca-agent/settings, under General >
   Default branch.
 
-- [ ] **D27. Add credit to the Anthropic account.** On 2026-10-04 the API
-  began refusing every call: "Your credit balance is too low". Until credit
-  is added, the scripted conversations cannot run, and if the live app uses
-  the same account it cannot answer either.
-
-### Renewal module
-
-- [ ] **D28. Choices the renewal spec leaves open.** Each is in `config.py`
-  or the module, labelled as an assumption. *Default: they stay as built.*
-  - **Quote formula:** equal weekly payments at the published annual rate
-    divided by 52, without IVA. An estimate, and said to the customer as
-    one.
-  - **Who has an offer:** only customers with a pre-approved limit on
-    record. The rest do not qualify, whatever their payment record.
-  - **"Promise activity in 6 months":** any payment promise created in the
-    last 180 days, kept or not.
-  - **The 30-day wait** stops the bank from offering again. A customer who
-    declined may still ask for a loan themselves.
-  - **Opening:** the same as for payments (D23). The offer is named only
-    after verification.
-
 ### Agent behaviour
 
 - [ ] **D5. Reply speed.** Decided 2026-10-03: use `EFFORT = "low"` for the
@@ -90,6 +67,26 @@ conversation**, a new lending module.
 
 ## Done
 
+- [x] **D27. Credit on the Anthropic account** (2026-10-04): the API refused
+  every call for a while ("credit balance is too low"). Felipe added
+  credit; calls work again.
+- [x] **D28. Choices the renewal spec leaves open** (2026-10-04): all
+  accepted, each labelled an assumption.
+  - **Quote formula:** equal weekly payments at the published annual rate
+    divided by 52, without IVA. An estimate, and said to the customer as
+    one.
+  - **Disclosure:** before asking the customer to go ahead, the agent states
+    the weekly payment, the total to pay and the CAT (83.5%, a placeholder
+    from the bank's published figures).
+  - **Who has an offer:** only customers with a pre-approved limit on
+    record.
+  - **"Promise activity in 6 months":** any payment promise created in the
+    last 180 days, kept or not.
+  - **The 30-day wait** stops the bank from offering again. A customer who
+    declined may still ask for a loan themselves.
+  - **Opening:** the same as for payments (D23).
+- [x] **Live tests** (2026-10-04): to save credit, after a change run only
+  the scripted conversations it affects (`--only`), not the whole set.
 - [x] **D23. What the outbound opening says before verification**
   (2026-10-04): kept as built. Before verification the opening names the
   bank and gives the reason only as "un asunto de su cuenta"; the loan is

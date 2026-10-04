@@ -4,6 +4,10 @@
     python -m tests.run --live   also the scripted conversations, which use
                                  the real model (about a minute, costs a
                                  little API credit)
+    python -m tests.run --live --only "renewal: offer" --only "third party"
+                                 only the scripted conversations whose name
+                                 contains one of these texts; use it to
+                                 re-run what changed and save credit
 
 Tests are collected from tests/ and from every enabled module's folder:
 test_policy.py for policy tests, test_conversations.py for scenarios.
@@ -59,12 +63,20 @@ def run_scenario(scenario):
         return scenario, traceback.format_exc(), conversation.log.path
 
 
+def only_filters() -> list:
+    """The texts given after each --only on the command line."""
+    return [sys.argv[i + 1] for i, arg in enumerate(sys.argv[:-1]) if arg == "--only"]
+
+
 def run_live() -> int:
     scenarios = []
     for package in test_packages():
         module = load(package, "test_conversations")
         if module:
             scenarios.extend(module.SCENARIOS)
+    wanted = only_filters()
+    if wanted:
+        scenarios = [s for s in scenarios if any(text in s.name for text in wanted)]
     print(f"\nRunning {len(scenarios)} scripted conversations against {config.MODEL}...\n")
     failed = 0
     with ThreadPoolExecutor(max_workers=6) as pool:
