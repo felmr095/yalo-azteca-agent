@@ -33,8 +33,9 @@ start that suits their story; you can change it. Type the phrases exactly,
 or in your own words: the agent's wording changes from run to run, but the
 amounts and what it does should not.
 
-When the app opens, the first customer (María Guadalupe) is already
-selected and the bank has written to her with a payment reminder.
+Nothing is sent to the model until you ask for it. When the bank is to
+write first, press **Start conversation**; when the customer writes first,
+the conversation starts with your first message.
 
 ### 1. A customer in hardship
 
@@ -43,9 +44,9 @@ selected and the bank has written to her with a payment reminder.
 He has missed 5 weekly payments. The bank writes to him, and he says he has
 lost his job.
 
-1. Choose Miguel Ángel. The start sets itself and the agent writes first.
-   It asks for him by first name and says only that it is about "un asunto
-   de su cuenta".
+1. Choose Miguel Ángel; the start sets itself. Press **Start
+   conversation** and the agent writes first. It asks for him by first
+   name and says only that it is about "un asunto de su cuenta".
 2. Type: `Sí, soy yo`
 3. Type: `Nací el 30 de enero de 1984 y mi cuenta termina en 4567`
    The agent now explains the loan: 5 payments missed and $3,186.00 pesos
@@ -58,7 +59,8 @@ summary written for the human agent. In the sidebar, "Outcome" shows
 `Handoff: ticket HT-0001, reason hardship` and `Promise: none`.
 
 **The other path, same customer and start.** Press "Reset conversation and
-data", repeat steps 2 and 3, and type `¿Qué opciones tengo?` instead. The
+data", then "Start conversation", repeat steps 2 and 3, and type `¿Qué
+opciones tengo?` instead. The
 agent explains "Ponte al corriente": he owes $3,786.00, $546.00 is waived,
 and he pays $3,240.00 by a date about a week out.
 
@@ -69,7 +71,8 @@ and he pays $3,240.00 by a date about a week out.
 She has made 45 of her 52 payments, all on time, and is pre-approved for a
 new loan of up to $8,000.00 pesos.
 
-1. Choose Carmen Beatriz. The start sets itself and the agent writes first.
+1. Choose Carmen Beatriz; the start sets itself. Press **Start
+   conversation** and the agent writes first.
 2. Type: `Sí, soy yo`
 3. Type: `Nací el 11 de abril de 1982 y mi cuenta termina en 9012`
    The agent tells her about the offer: $2,000.00 to $8,000.00, over 26, 39
@@ -87,9 +90,9 @@ sidebar, "Outcome" shows the quote and the application.
 
 ### Three customers the bank may not write to
 
-For these three the chat stays empty and one line above it says why. That
-is the rule working, not a fault: the check runs in code before the model
-is called.
+For these three, pressing **Start conversation** leaves the chat empty and
+one line above it says why. That is the rule working, not a fault: the
+check runs in code, and the model is never called.
 
 | Customer · Start | Why the bank does not write |
 |---|---|
@@ -200,18 +203,26 @@ what the code enforces:
 
 ## How AI tools were used
 
+- **Claude in the Claude app:** the research, the analysis of the bank,
+  the business case, and the drafts of the roadmap, the judgment and the
+  run plan.
+- **Claude Code** (Anthropic's coding agent): the agent, the tests, this
+  README and the deployment.
+- **Whisper, via Groq:** transcribing interviews.
 - **The agent itself** is Claude (`claude-opus-5-5`), called through the
   Anthropic API.
-- **The code, tests and documentation** were written with Claude Code,
-  Anthropic's coding agent, working in this repository under my direction.
-  I chose the use cases and the policies, reviewed each stage, tested the
-  live app on my phone, and approved every merge. `DECISIONS.md` is the
-  record of those decisions.
-- **The use-case specification**, including the figures taken from the
-  bank's published terms, was drafted with a separate AI planning
-  assistant and then given to Claude Code to build against. Claude Code
-  could not open the bank's pages, so it did not check those figures; they
-  are marked "bank doc" and should be confirmed against the source.
+
+I chose the use cases, the policies and the order of work; wrote the
+executive summary, the ordering and the judgment; reviewed each stage;
+tested the live app on my phone; and approved every merge. `DECISIONS.md`
+is the record of those decisions.
+
+Two limits worth knowing:
+
+- **The bank's figures were not checked by the code's author.** They came
+  from the research done in the Claude app. Claude Code could not open the
+  bank's pages, so they are marked "bank doc" and should be confirmed
+  against the source.
 - **The tests guard against the model's mistakes.** Policy rules are
   enforced in code and tested without the model. The scripted
   conversations run against the real model, but what they check is what

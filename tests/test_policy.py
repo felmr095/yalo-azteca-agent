@@ -178,6 +178,110 @@ def test_every_seed_customer_has_a_demo_start_that_exists():
     for customer in CUSTOMERS:
         assert customer["demo_start"] in (None, *config.ENABLED_MODULES), customer["first_name"]
 
+
+# --- The chat screen: no model call unless someone asks for one ---
+
+class FakeReply:
+    """What the model API returns, reduced to what the agent loop reads."""
+    stop_reason = "end_turn"
+
+    def __init__(self):
+        self.content = [type("Block", (), {"type": "text", "text": "Buenas tardes."})()]
+
+
+def chat_screen(run):
+    """Run the chat screen with a passcode set and the model replaced by a
+    counter. `run(page, calls)` drives it; `calls` is every model call made."""
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    from core import agent
+
+    calls, real_call = [], agent._call_model
+    agent._call_model = lambda *args, **kwargs: calls.append(1) or FakeReply()
+    saved = {name: os.environ.get(name) for name in ("APP_PASSCODE", "ANTHROPIC_API_KEY")}
+    os.environ.update(APP_PASSCODE="test-passcode", ANTHROPIC_API_KEY="not-a-real-key")
+    try:
+        page = AppTest.from_file(os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                              "app.py"), default_timeout=60)
+        run(page, calls)
+    finally:
+        agent._call_model = real_call
+        for name, value in saved.items():
+            os.environ.pop(name, None) if value is None else os.environ.update({name: value})
+
+
+def press(page, label):
+    next(b for b in page.button if b.label == label).click().run()
+
+
+def choose(page, name):
+    box = page.sidebar.selectbox[0]
+    box.select(next(o for o in box.options if o.startswith(name))).run()
+
+
+def test_passcode_comes_before_any_conversation_or_model_call():
+    def run(page, calls):
+        page.run()
+        assert "conversation" not in page.session_state and not page.chat_input
+        page.text_input[0].input("wrong").run()
+        assert "conversation" not in page.session_state and not calls
+        page.text_input[0].input("test-passcode").run()
+        assert "conversation" in page.session_state and not calls
+
+    chat_screen(run)
+
+
+def test_opening_the_page_and_picking_customers_calls_the_model_zero_times():
+    def run(page, calls):
+        page.session_state["unlocked"] = True
+        page.run()
+        for name in ("Miguel", "Carmen", "Ana Karen", "Rosa", "Unknown"):
+            choose(page, name)
+        assert not calls and not page.exception
+
+    chat_screen(run)
+
+
+def test_bank_writes_only_when_start_is_pressed():
+    def run(page, calls):
+        page.session_state["unlocked"] = True
+        page.run()
+        choose(page, "Miguel")
+        assert page.chat_input[0].disabled and not calls
+        press(page, "Start conversation")
+        assert len(calls) == 1 and not page.chat_input[0].disabled
+        assert [m.markdown[0].value for m in page.chat_message] == ["Buenas tardes."]
+
+    chat_screen(run)
+
+
+def test_refused_contact_is_explained_without_calling_the_model():
+    def run(page, calls):
+        page.session_state["unlocked"] = True
+        page.run()
+        choose(page, "Ana Karen")
+        assert not page.info
+        press(page, "Start conversation")
+        assert not calls and page.info[0].value.startswith(
+            "The bank did not write to Ana Karen: there is an active promise for")
+
+    chat_screen(run)
+
+
+def test_customer_first_starts_with_the_first_message():
+    def run(page, calls):
+        page.session_state["unlocked"] = True
+        page.run()
+        choose(page, "Rosa")
+        assert not page.chat_input[0].disabled and not calls
+        assert not [b for b in page.button if b.label == "Start conversation"]
+        page.chat_input[0].set_value("Hola").run()
+        assert len(calls) == 1
+
+    chat_screen(run)
+
 # --- The transcript printer ---
 
 def test_transcript_shows_messages_and_tool_calls_in_order():
