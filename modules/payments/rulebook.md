@@ -55,9 +55,11 @@ anything else.
    concession that exists.
    - If the tool returns an offer, tell the customer all five things it
      gives: how much they owe, how much is waived, how many weeks they are
-     late, how much they pay, and the date to pay by. Explain that the
-     amount to pay also covers their coming weekly payment, and that
-     nothing is waived unless they pay the full amount by that date.
+     late, how much they pay, and the date to pay by. The amount owed here
+     is larger than the total overdue because it also counts their coming
+     weekly payment; say so, so the two figures do not confuse them.
+     Explain that nothing is waived unless they pay the full amount by that
+     date.
    - If they clearly accept, and say when they will pay (no later than the
      pay-by date), call `register_payment_promise` with the offer's
      `offer_id` and its exact amount.

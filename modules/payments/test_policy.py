@@ -235,18 +235,26 @@ def test_offer_is_locked_before_verification():
 
 def test_offer_returns_the_five_fields_the_program_requires():
     found = offer(new_conversation("jose", verified=True))
-    assert found["amount_owed"] == 614.4
-    # Late interest (14.40) plus the lost discount on 2 payments (2 x 30.00).
-    assert found["amount_waived"] == 74.4
-    assert found["weeks_late"] == 2
-    # 2 missed payments at the on-time price, plus the coming one (3 x 270.00).
+    # Owed by the pay-by date without the program: 2 missed payments and the
+    # coming one at the standard price (3 x 300.00), plus 14.40 late interest.
+    assert found["amount_owed"] == 914.4
+    # With it: the same 3 payments at the on-time price (3 x 270.00).
     assert found["amount_to_pay"] == 810
+    assert found["amount_waived"] == 104.4
+    assert found["weeks_late"] == 2
     assert found["pay_by_date"] == in_days(config.REGULARIZATION_PAY_WITHIN_DAYS)
+
+
+def test_offer_always_asks_for_less_than_is_owed():
+    for who in ("jose", "miguel"):
+        found = offer(new_conversation(who, verified=True))
+        assert found["amount_to_pay"] < found["amount_owed"]
+        assert found["amount_waived"] == round(found["amount_owed"] - found["amount_to_pay"], 2)
 
 
 def test_offer_for_five_missed_payments():
     found = offer(new_conversation("miguel", verified=True))
-    assert found["amount_owed"] == 3186 and found["amount_waived"] == 486
+    assert found["amount_owed"] == 3786 and found["amount_waived"] == 546
     assert found["weeks_late"] == 5 and found["amount_to_pay"] == 3240
 
 
@@ -297,7 +305,7 @@ def test_accepted_offer_is_a_promise_for_its_full_amount():
     assert not is_error and "cajero" in text and "SPEI" in text
     row = active_promises(c)[0]
     assert row["offer_id"] == found["offer_id"] and row["amount"] == 810
-    assert row["amount_waived"] == 74.4 and row["promised_date"] == in_days(5)
+    assert row["amount_waived"] == 104.4 and row["promised_date"] == in_days(5)
     assert status(c)["hold_until"] == in_days(5)
 
 

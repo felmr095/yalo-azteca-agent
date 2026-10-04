@@ -104,19 +104,26 @@ def _offer_refusal(conn, loan) -> Optional[str]:
 
 def _offer(loan) -> dict:
     missed, on_time = loan["installments_missed"], loan["installment_on_time"]
-    lost_discounts = (loan["installment_standard"] - on_time) * missed
+    # Without the program, by the pay-by date the customer owes everything
+    # overdue plus the coming payment, all at the standard price.
+    owed = round(_total_overdue(loan) + loan["installment_standard"], 2)
+    to_pay = round((missed + 1) * on_time, 2)
     return {
         "offer_id": f"PAC-{loan['id']:04d}-{today():%Y%m%d}",
         "program": config.REGULARIZATION_NAME,
-        "amount_owed": _total_overdue(loan),
-        "amount_waived": round(loan["late_interest_accrued"] + lost_discounts, 2),
+        "amount_owed": owed,
+        "amount_waived": round(owed - to_pay, 2),
         "weeks_late": missed,
-        "amount_to_pay": round((missed + 1) * on_time, 2),
+        "amount_to_pay": to_pay,
         "pay_by_date": (
             today() + timedelta(days=config.REGULARIZATION_PAY_WITHIN_DAYS)).isoformat(),
+        "amount_owed_covers": (
+            f"the {missed} missed weekly payments and the coming one at the standard "
+            "price, plus the late interest: what is due by pay_by_date without the program"
+        ),
         "amount_to_pay_covers": (
-            f"the {missed} missed weekly payments at the on-time price, plus the coming "
-            f"weekly payment of {on_time:.2f} pesos"
+            f"the same {missed + 1} weekly payments at the on-time price, with no late "
+            "interest. Afterwards the loan is up to date, the coming payment included"
         ),
         "condition": "Nothing is waived unless the full amount is paid by pay_by_date.",
         "to_accept": "Call register_payment_promise with this offer_id, amount_to_pay as "

@@ -71,9 +71,10 @@ PROMISE_MAX_DAYS = 15
 # here. 1 means: one new promise after a broken one, then a person takes over.
 MAX_BROKEN_PROMISES = 1
 
-# The catch-up program. The customer pays the missed weekly payments at the
-# on-time price, plus the coming one; the late interest and the lost on-time
-# discounts are waived. Once per loan, and not for a loan that is already
+# The catch-up program. The customer pays the missed weekly payments and the
+# coming one at the on-time price. What is waived is the rest of what they
+# would owe by the pay-by date: the late interest and the on-time discounts
+# they had lost. Once per loan, and not for a loan that is already
 # restructured, renewed or on a plan.
 REGULARIZATION_NAME = "Ponte al corriente"   # bank doc
 REGULARIZATION_MIN_MISSED = 2                # bank doc: from 2 missed payments...

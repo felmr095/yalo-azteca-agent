@@ -52,12 +52,12 @@ def check_offer_is_explained_and_accepted(c):
     assert succeeded(c, "compute_regularization_offer")
     promise = one_promise(c)
     assert promise["offer_id"], "an ordinary promise was registered instead of the program"
-    assert promise["amount"] == 3240 and promise["amount_waived"] == 486
+    assert promise["amount"] == 3240 and promise["amount_waived"] == 546
     assert promise["promised_date"] == "2026-10-08"
     # Wording, because the program requires these to be said: the amount
     # owed, the amount waived, the amount to pay, and the cashier instruction.
     said = agent_text(c).replace(",", "")
-    for needed in ("3186", "486", "3240", "cajero"):
+    for needed in ("3786", "546", "3240", "cajero"):
         assert needed in said, f"the agent never said '{needed}'"
     assert not c.session.handed_off
 

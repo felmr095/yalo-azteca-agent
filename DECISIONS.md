@@ -54,23 +54,6 @@ conversation**, a new lending module.
   into `PUBLISHED_RATES_SOURCE_URL` in `config.py`. Reference it by address
   only; no PDFs in the repository. See D18 under Done.
 
-### Payment assistant
-
-- [ ] **D23. What the outbound opening says before verification.** The spec
-  says the opening "states the bank and reason". An earlier decision
-  (2026-10-02) says nothing about the debt is said until identity is
-  verified, and the spec itself forbids discussing the debt with anyone but
-  the verified holder. *Default: the opening names the bank and gives the
-  reason only as "un asunto de su cuenta"; the loan is first mentioned
-  after verification.*
-- [ ] **D25. Numbers the spec leaves open.** Each is in `config.py`,
-  labelled as an assumption. *Default: they stay as set.*
-  - **On-time discount:** 10% off the standard weekly payment.
-  - **Pay-by date of the program:** 7 days from today.
-  - **Promise by a customer who is not late yet** (the "hasta el martes"
-    test): allowed for a date after the due date, for one weekly payment,
-    between the on-time and the standard price.
-
 ### Demo
 
 - [ ] **D12. Demo script and backup recording.** Scheduled for M6.
@@ -85,6 +68,23 @@ conversation**, a new lending module.
 
 ## Done
 
+- [x] **D23. What the outbound opening says before verification**
+  (2026-10-04): kept as built. Before verification the opening names the
+  bank and gives the reason only as "un asunto de su cuenta"; the loan is
+  named only after. This is a deliberate trade-off. A specific opening
+  leaks the debt to whoever holds the phone; a vague one looks like
+  phishing. We accept the second risk and reduce it by never asking for
+  anything but the two verification facts.
+- [x] **D25. Numbers the spec leaves open** (2026-10-04): accepted, each
+  labelled an assumption in `config.py`. On-time discount: 10% off the
+  standard weekly payment. Pay-by date of the program: 7 days from today.
+  A customer who is not late yet may promise a date after the due date,
+  for one weekly payment, between the on-time and the standard price.
+- [x] **D26. "Amount owed" in the catch-up offer** (2026-10-04): everything
+  due by the pay-by date without the program: the missed payments and the
+  coming one at the standard price, plus accrued late interest. The amount
+  to pay is the same payments at the on-time price, and the amount waived
+  is the difference, so the customer always pays less than they owe.
 - [x] **D22. How M4b was built** (2026-10-04): replaced by the planner's
   spec. The invented offer (50% of late interest, 7 to 60 days late) and
   the invented daily late-interest rate are gone. "Ponte al corriente" now
