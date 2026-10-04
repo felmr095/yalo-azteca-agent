@@ -89,26 +89,33 @@ def api_problem(error: anthropic.APIError) -> str:
     return "Could not reach the model API. Check the internet connection."
 
 
-def start_conversation(phone: str, outbound):
-    conversation = Conversation(phone)  # gets its own copy of the database
-    st.session_state.conversation = conversation
+def new_conversation(phone: str, outbound):
+    """Set up a fresh conversation. Nothing is sent to the model here: that
+    happens only when someone presses "Start conversation" or sends a
+    message, so that opening the page costs nothing."""
+    st.session_state.conversation = Conversation(phone)  # its own copy of the database
     st.session_state.started_as = (phone, outbound)
     st.session_state.transcript = []  # (role, text, tool events) to display
     st.session_state.turns = 0
     st.session_state.notice = None    # (kind, one line shown above the chat)
-    if outbound:
-        try:
-            with st.spinner("Escribiendo..."):
-                opening = conversation.open(outbound)
-            st.session_state.transcript.append(("assistant", opening, []))
-        except OutboundNotAllowed as e:
-            who = FIRST_NAMES.get(phone)
-            st.session_state.notice = ("info", (
-                f"The bank did not write{' to ' + who if who else ''}: {e}. Switch to "
-                f"'{CUSTOMER_FIRST}' to "
-                + ("see the customer ask about it." if who else "write from this number.")))
-        except anthropic.APIError as e:
-            st.session_state.notice = ("error", api_problem(e))
+    st.session_state.opened = False   # has the bank's opening been asked for?
+
+
+def bank_writes_first(phone: str, outbound: str):
+    """Have the bank open the conversation, or say why it may not."""
+    st.session_state.opened = True
+    try:
+        with st.spinner("Escribiendo..."):
+            opening = st.session_state.conversation.open(outbound)
+        st.session_state.transcript.append(("assistant", opening, []))
+    except OutboundNotAllowed as e:
+        who = FIRST_NAMES.get(phone)
+        st.session_state.notice = ("info", (
+            f"The bank did not write{' to ' + who if who else ''}: {e}. Switch to "
+            f"'{CUSTOMER_FIRST}' to "
+            + ("see the customer ask about it." if who else "write from this number.")))
+    except anthropic.APIError as e:
+        st.session_state.notice = ("error", api_problem(e))
 
 
 def use_default_start():
@@ -124,9 +131,9 @@ with st.sidebar:
     phone = PHONES[label]
     outbound = STARTS[st.selectbox("Conversation starts with", list(STARTS), key="start")]
     if st.session_state.get("started_as") != (phone, outbound):
-        start_conversation(phone, outbound)
+        new_conversation(phone, outbound)
     if st.button("Reset conversation and data"):
-        start_conversation(phone, outbound)
+        new_conversation(phone, outbound)
 
     conversation = st.session_state.conversation
     session = conversation.session
@@ -159,6 +166,13 @@ def show_tool_events(events):
 
 st.title(f"{config.BANK_NAME} · Asistente virtual")
 
+if outbound and not st.session_state.opened:
+    st.write(f"The bank is set to write first ({outbound}) to "
+             f"{FIRST_NAMES.get(phone, 'this number')}.")
+    if st.button("Start conversation", type="primary"):
+        bank_writes_first(phone, outbound)
+        st.rerun()
+
 if st.session_state.notice:
     kind, line = st.session_state.notice
     (st.error if kind == "error" else st.info)(shown(line))
@@ -168,7 +182,9 @@ for role, text, events in st.session_state.transcript:
         st.write(shown(text))
         show_tool_events(events)
 
-user_text = st.chat_input("Escriba su mensaje")
+# When the bank is to write first, the customer can only answer once it has.
+user_text = st.chat_input("Escriba su mensaje",
+                          disabled=bool(outbound) and not st.session_state.transcript)
 if user_text:
     if st.session_state.turns >= config.MAX_TURNS_PER_SESSION:
         st.warning("Session limit reached. Use the reset button to start again.")
