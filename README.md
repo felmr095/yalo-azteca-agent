@@ -90,13 +90,23 @@ To verify as a seed customer in the chat, use the date of birth and the last
 4 digits of the account number from `data/seed.py`. For the first customer:
 "14 de marzo de 1988" and "1234".
 
-## Deploy to Streamlit Community Cloud
+## Deployment
 
-1. Push this folder to a GitHub repository.
-2. At https://share.streamlit.io choose "Create app", pick the repository
-   and `app.py`. Under "Advanced settings" choose Python 3.12 and paste the
-   two lines from `secrets.toml` into the Secrets box.
-3. Share the link together with the passcode.
+The app is live at https://yalo-azteca-agent.streamlit.app. It runs on
+Streamlit Community Cloud, from the `main` branch of
+https://github.com/felmr095/yalo-azteca-agent, on Python 3.12.
+
+- **To update it:** push to `main`. Streamlit Cloud redeploys by itself
+  within a minute or two.
+- **Secrets:** `ANTHROPIC_API_KEY` and `APP_PASSCODE` are set in the
+  Streamlit dashboard (the app's Settings > Secrets). They are not in the
+  repository. To change one, edit it there; the app restarts.
+- **Sharing:** send the link together with the passcode.
 
 The app goes to sleep after a period without visitors; open it a few
 minutes before a demo to wake it up.
+
+To deploy a fresh copy: at https://share.streamlit.io choose "Create app",
+pick the repository, the `main` branch and `app.py`. Under "Advanced
+settings" choose Python 3.12 and paste the two lines from `secrets.toml`
+into the Secrets box.
