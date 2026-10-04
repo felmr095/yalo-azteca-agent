@@ -44,7 +44,7 @@ ENFORCE_CONTACT_HOURS = False
 
 # --- Use cases ---
 # Folder names under modules/ that are switched on.
-ENABLED_MODULES = ["payments"]
+ENABLED_MODULES = ["payments", "renewal"]
 
 # --- Loans ---
 # ASSUMPTION: the size of the bank's discount for paying a weekly payment on
@@ -95,9 +95,29 @@ PAYMENT_CHANNELS = [
     "Cobrador de Banco Azteca",
 ]
 
+# --- Renewal module (ALL ASSUMPTIONS, placeholders for real policy) ---
+# A customer may be offered a new loan only if all of these hold. On top of
+# them, a customer who is late or has an active payment promise is never
+# offered credit; that rule has no number.
+RENEWAL_MIN_ON_TIME_PERCENT = 90   # share of payments made on time
+RENEWAL_NO_LATE_WEEKS = 8          # no late payment in this many weeks
+RENEWAL_NO_PROMISE_MONTHS = 6      # no payment promise in this many months
+RENEWAL_MIN_REPAID_PERCENT = 75    # share of the current loan's payments made
+# The new loan: the smallest amount, the terms on offer (in weeks) and the
+# product whose published rate and CAT are quoted. The largest amount is
+# each customer's own pre-approved limit, in the seed data.
+RENEWAL_MIN_AMOUNT = 2000
+RENEWAL_TERMS_WEEKS = [26, 39, 52]
+RENEWAL_PRODUCT = "Préstamo personal"
+# After an offer is declined or an application is started, the bank does not
+# offer again for this many days.
+RENEWAL_REOFFER_DAYS = 30
+# Shown to the customer when an application is started.
+RENEWAL_APPLICATION_STATUS = "iniciada, pendiente de confirmación en la app"
+
 # --- Published figures (bank doc) ---
 # Annual interest rate and average CAT per product, in percent, without IVA.
-# Not used by the payment assistant; the renewal quote will read them.
+# The renewal quote reads them.
 # SOURCE NEEDED: Banco Azteca's "Ponte al corriente" terms page, which is
 # also the source of every "bank doc" value above. Paste its address here.
 # Claude could not open the page to check any of them.

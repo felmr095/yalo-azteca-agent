@@ -105,6 +105,44 @@ CUSTOMERS = [
         "payments_days_ago": [12, 19, 26],
     },
     {
+        # Renewal: 45 of 52 payments made, all on time; pre-approved for a
+        # new loan (see modules/renewal/seed.py).
+        "full_name": "Carmen Beatriz Ortiz Navarro",
+        "first_name": "Carmen Beatriz",
+        "phone": "+52 477 555 0109",
+        "date_of_birth": "1982-04-11",
+        "account": {"product": "Guardadito", "number": "4027660000009012", "balance": 2400.00},
+        "loan": {"product": "Préstamo personal", "principal": 10000, "outstanding_balance": 1350,
+                 "installment_standard": 300, "due_in_days": 4, "installments_missed": 0,
+                 "late_interest_accrued": 0, "has_plan": False},
+        "payments_days_ago": [3, 10, 17],
+    },
+    {
+        # Renewal: a good record, but he has an active payment promise, so he
+        # must not be offered credit.
+        "full_name": "Ricardo Daniel Morales Ríos",
+        "first_name": "Ricardo Daniel",
+        "phone": "+52 614 555 0110",
+        "date_of_birth": "1990-02-27",
+        "account": {"product": "Guardadito", "number": "4027660000000123", "balance": 310.00},
+        "loan": {"product": "Préstamo personal", "principal": 8000, "outstanding_balance": 900,
+                 "installment_standard": 250, "due_in_days": 1, "installments_missed": 0,
+                 "late_interest_accrued": 0, "has_plan": False},
+        "payments_days_ago": [6, 13, 20],
+    },
+    {
+        # Renewal: pre-approved, but she declined the offer 10 days ago.
+        "full_name": "Sofía Alejandra Vargas Luna",
+        "first_name": "Sofía Alejandra",
+        "phone": "+52 998 555 0111",
+        "date_of_birth": "1986-10-19",
+        "account": {"product": "Guardadito", "number": "4027660000001357", "balance": 5100.00},
+        "loan": {"product": "Crédito de consumo", "principal": 6000, "outstanding_balance": 700,
+                 "installment_standard": 200, "due_in_days": 5, "installments_missed": 0,
+                 "late_interest_accrued": 0, "has_plan": False},
+        "payments_days_ago": [2, 9, 16],
+    },
+    {
         # Savings only, no loan.
         "full_name": "Rosa Elena Martínez Jiménez",
         "first_name": "Rosa Elena",

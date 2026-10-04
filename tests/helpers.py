@@ -26,6 +26,9 @@ CUSTOMERS = {
     "juan": {"phone": "+52 442 555 0106", "date_of_birth": "1991-05-17", "account_last4": "6789"},
     "laura": {"phone": "+52 656 555 0107", "date_of_birth": "1993-12-05", "account_last4": "7890"},
     "fernando": {"phone": "+52 999 555 0108", "date_of_birth": "1975-08-23", "account_last4": "8901"},
+    "carmen": {"phone": "+52 477 555 0109", "date_of_birth": "1982-04-11", "account_last4": "9012"},
+    "ricardo": {"phone": "+52 614 555 0110", "date_of_birth": "1990-02-27", "account_last4": "0123"},
+    "sofia": {"phone": "+52 998 555 0111", "date_of_birth": "1986-10-19", "account_last4": "1357"},
 }
 UNKNOWN_PHONE = "+52 00 0000 0000"
 

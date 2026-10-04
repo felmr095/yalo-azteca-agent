@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS payment_promises (
 PROMISES = [
     # Ana Karen: already has an active promise.
     {"phone": "+52 33 5550 0103", "amount": 450, "due_in_days": 3, "status": "active"},
+    # Ricardo Daniel: not late, but has promised to pay after his due date.
+    {"phone": "+52 614 555 0110", "amount": 250, "due_in_days": 3, "status": "active"},
     # Miguel Ángel: broke one promise.
     {"phone": "+52 222 555 0104", "amount": 1040, "due_in_days": -10, "status": "broken"},
     # Juan Carlos: broke two promises.

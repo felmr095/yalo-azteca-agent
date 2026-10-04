@@ -59,6 +59,7 @@ after pressing "Reset conversation and data" in the sidebar.
 | `data/seed.py`          | Fake customers; `python -m data.seed` writes `bank.db`.  |
 | `core/modules.py`       | The contract a use case must satisfy to plug in.         |
 | `modules/payments/`     | The payment assistant use case.                          |
+| `modules/renewal/`      | The loan renewal use case.                               |
 | `tests/run.py`          | The test runner.                                         |
 | `DECISIONS.md`          | Open and settled decisions.                              |
 
@@ -82,13 +83,36 @@ Then add the folder name to `ENABLED_MODULES` and its policy numbers to
 ## Tests
 
     python -m tests.run          # policy tests: instant and free
-    python -m tests.run --live   # plus scripted conversations (about 1 min)
+    python -m tests.run --live   # plus scripted conversations (about 2 min)
+    python -m tests.run --live --only "renewal: offer"   # only matching ones
+
+Scripted conversations cost API credit. After a change, re-run only the
+ones it affects, with `--only` and part of their name.
 
 Transcripts of the scripted conversations are saved in `logs/tests/`.
 
-To verify as a seed customer in the chat, use the date of birth and the last
-4 digits of the account number from `data/seed.py`. For the first customer:
-"14 de marzo de 1988" and "1234".
+
+## Seed customers
+
+Pick one in the sidebar under "Chat is coming from". To verify, give the
+date of birth and the last 4 digits of the account. All are fictional.
+"Bank first" means choosing "Bank reaches out: ..." under "Conversation
+starts with".
+
+| Customer | Situation | Born | Last 4 | What to demo |
+|---|---|---|---|---|
+| María Guadalupe | Up to date; payment due in 2 days | 14 March 1988 | 1234 | Bank first (payments): a reminder. Say you will pay in the app and nothing is recorded; say you can only pay a few days later and a promise with a hold is. |
+| Laura Patricia | 1 payment missed | 5 December 1993 | 7890 | Bank first (payments). Ask for "Ponte al corriente": not available yet, a promise is offered instead. |
+| José Luis | 2 payments missed | 2 November 1979 | 2345 | Bank first (payments): the "Ponte al corriente" offer (owes $914.40, pays $810.00). Also: answer as a relative; say "ya pagué ayer"; ask to drop the interest; ask to change a phone number. |
+| Miguel Ángel | 5 payments missed; one broken promise | 30 January 1984 | 4567 | Customer first, asking to catch up: the full offer (owes $3,786.00, pays $3,240.00) and the instruction for the cashier. Or say you lost your job: handed to a person. |
+| Juan Carlos | 3 payments missed; two broken promises | 17 May 1991 | 6789 | Bank first (payments). Any promise is refused and handed to a person. |
+| Luis Fernando | 3 payments missed; loan already on a plan | 23 August 1975 | 8901 | Customer first, asking for "Ponte al corriente": excluded, a promise only. |
+| Ana Karen | 1 payment missed; has an active promise | 21 July 1995 | 3456 | Bank first (payments) is blocked by the collections hold. Customer first, asking for a second promise: refused. |
+| Carmen Beatriz | 45 of 52 payments made, all on time; pre-approved for $8,000.00 | 11 April 1982 | 9012 | Bank first (renewal): ask what $5,000.00 over 52 weeks costs, accept, and an application starts. Or decline; or ask for $15,000.00; or say paying is hard. |
+| Ricardo Daniel | Good record, but an active promise | 27 February 1990 | 0123 | Customer first, asking for more credit: none is offered. Bank first (renewal) is blocked. |
+| Sofía Alejandra | Pre-approved for $5,000.00; declined 10 days ago | 19 October 1986 | 1357 | Bank first (renewal) is blocked for 30 days after a decline. She can still ask for a loan herself. |
+| Rosa Elena | Savings only, no loan | 8 September 1967 | 5678 | Bank first is blocked for both use cases. Customer first: a balance question. |
+| Unknown number | Not a customer | none | none | Ask where a loan can be paid: answered without verification. Nothing else is. |
 
 ## Deployment
 
