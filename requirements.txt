@@ -1,2 +1,3 @@
-anthropic>=0.125,<1
-streamlit>=1.50,<2
+# Exact versions, so Streamlit Cloud runs what was tested locally.
+anthropic==0.125.0
+streamlit==1.50.0
