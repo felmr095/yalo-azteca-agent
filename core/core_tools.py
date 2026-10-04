@@ -1,9 +1,10 @@
 """Tools every use case shares: verify identity, see the customer's
 products, and hand off to a person."""
 
-from datetime import date, datetime
+from datetime import date
 
 import config
+from core import clock
 from core.tools import Tool, ToolError
 
 HANDOFF_REASONS = [
@@ -90,7 +91,7 @@ def handoff_to_human(session, reason: str, summary: str) -> dict:
         "INSERT INTO handoff_tickets (customer_id, phone, verified, reason, summary, created_at)"
         " VALUES (?, ?, ?, ?, ?, ?)",
         (session.customer_id, session.phone, int(session.verified), reason, summary,
-         datetime.now().isoformat(timespec="seconds")),
+         clock.timestamp()),
     ).lastrowid
     session.conn.commit()
     session.handed_off = True

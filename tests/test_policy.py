@@ -146,6 +146,38 @@ def test_contact_hours_block_outbound_when_switched_on():
         clock.now = real_now
 
 
+
+def test_agent_is_told_the_time_of_day():
+    from core import rulebook
+
+    real_now = clock.now
+    try:
+        at_hour(17)
+        assert "The time is 17:30 (America/Mexico_City)" in rulebook.build_system_prompt()
+    finally:
+        clock.now = real_now
+
+
+def test_logs_and_tickets_are_stamped_in_the_bank_time_zone():
+    real_now = clock.now
+    try:
+        at_hour(17)
+        c = new_conversation("maria")
+        c.call_tool("handoff_to_human", HANDOFF)
+        assert c.log.session_id.startswith("20261002-1730")
+        assert c.log.events[-1]["ts"] == "2026-10-02T17:30:00"
+        ticket = c.conn.execute("SELECT created_at FROM handoff_tickets").fetchone()
+        assert ticket["created_at"] == "2026-10-02T17:30:00"
+    finally:
+        clock.now = real_now
+
+
+def test_every_seed_customer_has_a_demo_start_that_exists():
+    from data.seed import CUSTOMERS
+
+    for customer in CUSTOMERS:
+        assert customer["demo_start"] in (None, *config.ENABLED_MODULES), customer["first_name"]
+
 # --- The transcript printer ---
 
 def test_transcript_shows_messages_and_tool_calls_in_order():

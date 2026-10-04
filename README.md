@@ -26,20 +26,26 @@ English: they are for the person running the demo, not for the customer.
 
 ## A 5-minute test
 
-Two conversations, about two minutes each. The sidebar on the left chooses
-who the chat comes from and who writes first. Type the phrases exactly, or
-in your own words; the agent's wording changes from run to run, but the
+Two conversations, about two minutes each. Each step below names the
+combination to use in the sidebar: the **customer** ("Chat is coming from")
+and the **start** ("Conversation starts with"). Picking a customer sets the
+start that suits their story; you can change it. Type the phrases exactly,
+or in your own words: the agent's wording changes from run to run, but the
 amounts and what it does should not.
 
-### 1. A customer in hardship (Miguel Ángel)
+When the app opens, the first customer (María Guadalupe) is already
+selected and the bank has written to her with a payment reminder.
+
+### 1. A customer in hardship
+
+**Customer: Miguel Ángel Sánchez Cruz · Start: Bank reaches out: payments**
 
 He has missed 5 weekly payments. The bank writes to him, and he says he has
 lost his job.
 
-1. In the sidebar, set "Chat is coming from" to **Miguel Ángel Sánchez
-   Cruz** and "Conversation starts with" to **Bank reaches out: payments**.
-   The agent writes first. It asks for him by first name and says only
-   that it is about "un asunto de su cuenta".
+1. Choose Miguel Ángel. The start sets itself and the agent writes first.
+   It asks for him by first name and says only that it is about "un asunto
+   de su cuenta".
 2. Type: `Sí, soy yo`
 3. Type: `Nací el 30 de enero de 1984 y mi cuenta termina en 4567`
    The agent now explains the loan: 5 payments missed and $3,186.00 pesos
@@ -51,17 +57,19 @@ person. Under its reply, "What the agent did" shows the handoff with a
 summary written for the human agent. In the sidebar, "Outcome" shows
 `Handoff: ticket HT-0001, reason hardship` and `Promise: none`.
 
-To see the other path, press "Reset conversation and data", repeat steps 2
-and 3, and type `¿Qué opciones tengo?` instead. The agent explains "Ponte
-al corriente": he owes $3,786.00, $546.00 is waived, he pays $3,240.00.
+**The other path, same customer and start.** Press "Reset conversation and
+data", repeat steps 2 and 3, and type `¿Qué opciones tengo?` instead. The
+agent explains "Ponte al corriente": he owes $3,786.00, $546.00 is waived,
+and he pays $3,240.00 by a date about a week out.
 
-### 2. A renewal quote (Carmen Beatriz)
+### 2. A renewal quote
+
+**Customer: Carmen Beatriz Ortiz Navarro · Start: Bank reaches out: renewal**
 
 She has made 45 of her 52 payments, all on time, and is pre-approved for a
 new loan of up to $8,000.00 pesos.
 
-1. In the sidebar, choose **Carmen Beatriz Ortiz Navarro** and **Bank
-   reaches out: renewal**.
+1. Choose Carmen Beatriz. The start sets itself and the agent writes first.
 2. Type: `Sí, soy yo`
 3. Type: `Nací el 11 de abril de 1982 y mi cuenta termina en 9012`
    The agent tells her about the offer: $2,000.00 to $8,000.00, over 26, 39
@@ -77,38 +85,57 @@ before asking whether to go ahead. It then gives a reference and sends her
 to the app to confirm; it never says the money is on its way. In the
 sidebar, "Outcome" shows the quote and the application.
 
+### Three customers the bank may not write to
+
+For these three the chat stays empty and one line above it says why. That
+is the rule working, not a fault: the check runs in code before the model
+is called.
+
+| Customer · Start | Why the bank does not write |
+|---|---|
+| Ana Karen · Bank reaches out: payments | She has an active payment promise; the hold suppresses contact until its date, a few days out. |
+| Ricardo Daniel · Bank reaches out: payments | The same: an active promise and its hold. |
+| Sofía Alejandra · Bank reaches out: renewal | She declined a loan offer 10 days ago; no new offer for 20 more days. |
+
+Switch the start to "Customer writes first" to chat as any of them. Ask
+Ana Karen's agent for a second promise, or Ricardo Daniel's for more
+credit: both are refused.
+
 ### Things worth trying after that
 
-- Answer as someone else (`No, él no está. Soy su hermano, ¿de qué se
-  trata?`) with José Luis: the agent says nothing about the loan.
-- Give a wrong date of birth three times: verification locks and the
-  conversation goes to a person.
-- Ask Carmen Beatriz for `15,000 pesos`: the agent explains her limit.
-- Choose Ana Karen with "Bank reaches out: payments": the bank is not
-  allowed to contact her, because her payment promise puts collections on
-  hold.
+- **José Luis Ramírez Torres · Bank reaches out: payments.** Answer as
+  someone else (`No, él no está. Soy su hermano, ¿de qué se trata?`): the
+  agent says nothing about the loan.
+- **Any customer.** Give a wrong date of birth three times: verification
+  locks and the conversation goes to a person.
+- **Carmen Beatriz · Bank reaches out: renewal.** Ask for `15,000 pesos`:
+  the agent explains her limit.
+- **Unknown number · Customer writes first.** Ask `¿dónde puedo pagar un
+  préstamo?`: answered without verification, and nothing else is.
 
 ## Seed customers
 
 Pick one in the sidebar under "Chat is coming from". To verify, give the
 date of birth and the last 4 digits of the account. All are fictional.
-"Bank first" means choosing "Bank reaches out: ..." under "Conversation
-starts with".
+"Bank first" means "Bank reaches out: ..." under "Conversation starts
+with"; picking a customer selects the start shown first in their row. Every
+date in the data is set relative to today, so "due in 2 days" is always
+true.
 
 | Customer | Situation | Born | Last 4 | What to demo |
 |---|---|---|---|---|
 | María Guadalupe | Up to date; payment due in 2 days | 14 March 1988 | 1234 | Bank first (payments): a reminder. Say you will pay in the app and nothing is recorded; say you can only pay a few days later and a promise with a hold is. |
 | Laura Patricia | 1 payment missed | 5 December 1993 | 7890 | Bank first (payments). Ask for "Ponte al corriente": not available yet, a promise is offered instead. |
 | José Luis | 2 payments missed | 2 November 1979 | 2345 | Bank first (payments): the "Ponte al corriente" offer (owes $914.40, pays $810.00). Also: answer as a relative; say "ya pagué ayer"; ask to drop the interest; ask to change a phone number. |
-| Miguel Ángel | 5 payments missed; one broken promise | 30 January 1984 | 4567 | Customer first, asking to catch up: the full offer (owes $3,786.00, pays $3,240.00) and the instruction for the cashier. Or say you lost your job: handed to a person. |
+| Miguel Ángel | 5 payments missed; one broken promise | 30 January 1984 | 4567 | Bank first (payments): say you lost your job and you are handed to a person. Or ask what your options are: the full offer (owes $3,786.00, pays $3,240.00) and the instruction for the cashier. |
 | Juan Carlos | 3 payments missed; two broken promises | 17 May 1991 | 6789 | Bank first (payments). Any promise is refused and handed to a person. |
-| Luis Fernando | 3 payments missed; loan already on a plan | 23 August 1975 | 8901 | Customer first, asking for "Ponte al corriente": excluded, a promise only. |
-| Ana Karen | 1 payment missed; has an active promise | 21 July 1995 | 3456 | Bank first (payments) is blocked by the collections hold. Customer first, asking for a second promise: refused. |
+| Luis Fernando | 3 payments missed; loan already on a plan | 23 August 1975 | 8901 | Bank first (payments). Ask for "Ponte al corriente": excluded, a promise only. |
+| Ana Karen | 1 payment missed; has an active promise due in 3 days | 21 July 1995 | 3456 | Bank first (payments) is refused: the promise puts collections on hold. Customer first, asking for a second promise: refused. |
 | Carmen Beatriz | 45 of 52 payments made, all on time; pre-approved for $8,000.00 | 11 April 1982 | 9012 | Bank first (renewal): ask what $5,000.00 over 52 weeks costs, accept, and an application starts. Or decline; or ask for $15,000.00; or say paying is hard. |
-| Ricardo Daniel | Good record, but an active promise | 27 February 1990 | 0123 | Customer first, asking for more credit: none is offered. Bank first (renewal) is blocked. |
-| Sofía Alejandra | Pre-approved for $5,000.00; declined 10 days ago | 19 October 1986 | 1357 | Bank first (renewal) is blocked for 30 days after a decline. She can still ask for a loan herself. |
-| Rosa Elena | Savings only, no loan | 8 September 1967 | 5678 | Bank first is blocked for both use cases. Customer first: a balance question. |
-| Unknown number | Not a customer | none | none | Ask where a loan can be paid: answered without verification. Nothing else is. |
+| Ricardo Daniel | Good record, but an active promise due in 3 days | 27 February 1990 | 0123 | Bank first (payments) is refused by the hold, and bank first (renewal) because of the promise. Customer first, asking for more credit: none is offered. |
+| Sofía Alejandra | Pre-approved for $5,000.00; declined 10 days ago | 19 October 1986 | 1357 | Bank first (renewal) is refused for 30 days after a decline. Customer first: she can still ask for a loan herself. |
+| Rosa Elena | Savings only, no loan | 8 September 1967 | 5678 | Customer first: a balance question. Bank first is refused for both use cases. |
+| Unknown number | Not a customer | none | none | Customer first: ask where a loan can be paid. It is answered without verification; nothing else is. |
 
 ## Run it locally
 

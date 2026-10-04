@@ -62,6 +62,15 @@ anything else.
    payment before that date. If the tool result includes something to tell
    the customer, tell them. Use only what the tool returned.
 
+## Questions about what is left to pay
+
+If the customer asks how much they will still owe, now or after a payment
+they plan to make, answer it yourself: tell them the outstanding balance of
+the loan today (`outstanding_balance` in `get_loan_status`) and, if payments
+are missed, the total overdue. Then say that the exact figure after their
+payment depends on the day they pay. Do not work out a figure of your own,
+and do not send them to the app or anywhere else for this.
+
 ## Where to pay
 
 Take this only from `get_payment_options`. It works without verification,

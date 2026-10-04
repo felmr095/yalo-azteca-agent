@@ -1,6 +1,8 @@
 """Fake customers for the mock bank. All people and numbers are invented.
 
 To add a customer, copy one block in CUSTOMERS and change the values.
+"demo_start" is the use case the bank writes to them about when they are
+picked on the demo screen; None means the customer writes first.
 Dates are written as "days from today" so the data never goes stale:
 due_in_days=2 means the coming weekly payment is due in 2 days.
 
@@ -22,6 +24,7 @@ CUSTOMERS = [
         # Current on her loan; the next payment is due in 2 days.
         "full_name": "María Guadalupe Hernández López",
         "first_name": "María Guadalupe",
+        "demo_start": "payments",
         "phone": "+52 55 5550 0101",
         "date_of_birth": "1988-03-14",
         "account": {"product": "Guardadito", "number": "4027660000001234", "balance": 1850.00},
@@ -34,6 +37,7 @@ CUSTOMERS = [
         # 1 payment missed (3 days late): too early for the catch-up program.
         "full_name": "Laura Patricia Gómez Ruiz",
         "first_name": "Laura Patricia",
+        "demo_start": "payments",
         "phone": "+52 656 555 0107",
         "date_of_birth": "1993-12-05",
         "account": {"product": "Guardadito", "number": "4027660000007890", "balance": 130.00},
@@ -46,6 +50,7 @@ CUSTOMERS = [
         # 2 payments missed (12 days late): eligible for the catch-up program.
         "full_name": "José Luis Ramírez Torres",
         "first_name": "José Luis",
+        "demo_start": "payments",
         "phone": "+52 81 5550 0102",
         "date_of_birth": "1979-11-02",
         "account": {"product": "Guardadito", "number": "4027660000002345", "balance": 210.50},
@@ -58,6 +63,7 @@ CUSTOMERS = [
         # 5 payments missed (30 days late): eligible for the catch-up program.
         "full_name": "Miguel Ángel Sánchez Cruz",
         "first_name": "Miguel Ángel",
+        "demo_start": "payments",
         "phone": "+52 222 555 0104",
         "date_of_birth": "1984-01-30",
         "account": {"product": "Guardadito", "number": "4027660000004567", "balance": 0.00},
@@ -70,6 +76,7 @@ CUSTOMERS = [
         # 3 payments missed (21 days late) and two broken promises.
         "full_name": "Juan Carlos Pérez García",
         "first_name": "Juan Carlos",
+        "demo_start": "payments",
         "phone": "+52 442 555 0106",
         "date_of_birth": "1991-05-17",
         "account": {"product": "Guardadito", "number": "4027660000006789", "balance": 40.00},
@@ -83,6 +90,7 @@ CUSTOMERS = [
         # which excludes it from the catch-up program.
         "full_name": "Luis Fernando Castillo Vega",
         "first_name": "Luis Fernando",
+        "demo_start": "payments",
         "phone": "+52 999 555 0108",
         "date_of_birth": "1975-08-23",
         "account": {"product": "Guardadito", "number": "4027660000008901", "balance": 65.00},
@@ -96,6 +104,7 @@ CUSTOMERS = [
         # modules/payments/seed.py).
         "full_name": "Ana Karen Flores Mendoza",
         "first_name": "Ana Karen",
+        "demo_start": "payments",
         "phone": "+52 33 5550 0103",
         "date_of_birth": "1995-07-21",
         "account": {"product": "Guardadito", "number": "4027660000003456", "balance": 95.00},
@@ -109,6 +118,7 @@ CUSTOMERS = [
         # new loan (see modules/renewal/seed.py).
         "full_name": "Carmen Beatriz Ortiz Navarro",
         "first_name": "Carmen Beatriz",
+        "demo_start": "renewal",
         "phone": "+52 477 555 0109",
         "date_of_birth": "1982-04-11",
         "account": {"product": "Guardadito", "number": "4027660000009012", "balance": 2400.00},
@@ -122,6 +132,7 @@ CUSTOMERS = [
         # must not be offered credit.
         "full_name": "Ricardo Daniel Morales Ríos",
         "first_name": "Ricardo Daniel",
+        "demo_start": "payments",
         "phone": "+52 614 555 0110",
         "date_of_birth": "1990-02-27",
         "account": {"product": "Guardadito", "number": "4027660000000123", "balance": 310.00},
@@ -134,6 +145,7 @@ CUSTOMERS = [
         # Renewal: pre-approved, but she declined the offer 10 days ago.
         "full_name": "Sofía Alejandra Vargas Luna",
         "first_name": "Sofía Alejandra",
+        "demo_start": "renewal",
         "phone": "+52 998 555 0111",
         "date_of_birth": "1986-10-19",
         "account": {"product": "Guardadito", "number": "4027660000001357", "balance": 5100.00},
@@ -146,6 +158,7 @@ CUSTOMERS = [
         # Savings only, no loan.
         "full_name": "Rosa Elena Martínez Jiménez",
         "first_name": "Rosa Elena",
+        "demo_start": None,
         "phone": "+52 55 5550 0105",
         "date_of_birth": "1967-09-08",
         "account": {"product": "Guardadito", "number": "4027660000005678", "balance": 7320.75},

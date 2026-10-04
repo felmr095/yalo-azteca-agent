@@ -362,7 +362,8 @@ def test_bank_may_contact_a_late_customer():
 def test_bank_may_not_contact_a_customer_during_a_hold():
     # Ana has a seeded promise for 3 days from now.
     refusal = outbound_refusal(new_conversation("ana"))
-    assert refusal and "hold" in refusal and in_days(3) in refusal
+    assert refusal == ("there is an active promise for $450.00 due 5 October, and the hold "
+                       "suppresses contact until then")
 
 
 def test_hold_ends_once_the_promised_date_has_passed():
@@ -380,7 +381,7 @@ def test_bank_may_remind_a_customer_whose_payment_is_due_soon():
 def test_bank_may_not_remind_a_customer_whose_payment_is_far_off():
     c = new_conversation("maria")
     set_loan(c, next_due_date=in_days(config.REMINDER_DAYS_BEFORE_DUE + 1))
-    assert "Reminders start" in outbound_refusal(c)
+    assert "reminders start" in outbound_refusal(c)
 
 
 def test_bank_may_not_contact_a_customer_without_a_loan():
@@ -391,6 +392,7 @@ def test_bank_may_not_contact_a_customer_without_a_loan():
 
 def test_outcome_shows_nothing_before_anything_happens():
     found = new_conversation("jose").outcome_summary()
+    assert found["Opening"] == "the customer writes first"
     assert found["Identity"] == "not verified" and found["Handoff"] == "none"
     assert found["Promise"] == "none" and found["Offer shown"] == "none"
 
@@ -418,6 +420,17 @@ def test_outcome_shows_an_accepted_offer_as_a_promise_with_its_hold():
 def test_outcome_tells_an_earlier_promise_from_a_new_one():
     found = new_conversation("ana").outcome_summary()
     assert found["Promise"] == f"$450.00 on {in_days(3)}, hold until {in_days(3)} (made earlier)"
+
+
+def test_outcome_shows_why_the_bank_did_not_write():
+    c = new_conversation("ana")
+    try:
+        c.open("payments")   # refused before any model call
+    except OutboundNotAllowed:
+        pass
+    assert c.outcome_summary()["Opening"] == (
+        "the bank did not write (payments): there is an active promise for $450.00 due "
+        "5 October, and the hold suppresses contact until then")
 
 
 def test_outcome_shows_the_handoff_ticket_and_reason():

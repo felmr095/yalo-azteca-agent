@@ -43,19 +43,26 @@ def _days_ago(days: int) -> str:
     return (today() - timedelta(days=days)).isoformat()
 
 
+def _recent_offer(conn, customer_id):
+    """The latest decline or application still inside the waiting period, as
+    a row with what the customer did and the day, or None."""
+    row = conn.execute(
+        "SELECT 'declined an offer' AS what, declined_on AS day FROM renewal_declines"
+        " WHERE customer_id = :c UNION ALL"
+        " SELECT 'started an application', created_on FROM loan_applications"
+        " WHERE customer_id = :c ORDER BY day DESC LIMIT 1",
+        {"c": customer_id},
+    ).fetchone()
+    return row if row and row["day"] > _days_ago(config.RENEWAL_REOFFER_DAYS) else None
+
+
 def _no_offer_before(conn, customer_id) -> Optional[str]:
     """If the customer declined or applied recently: the date offers may resume."""
-    since = _days_ago(config.RENEWAL_REOFFER_DAYS)
-    last = conn.execute(
-        "SELECT MAX(day) AS day FROM ("
-        " SELECT declined_on AS day FROM renewal_declines WHERE customer_id = :c"
-        " UNION ALL SELECT created_on FROM loan_applications WHERE customer_id = :c)",
-        {"c": customer_id},
-    ).fetchone()["day"]
-    if last and last > since:
-        return (date.fromisoformat(last)
-                + timedelta(days=config.RENEWAL_REOFFER_DAYS)).isoformat()
-    return None
+    recent = _recent_offer(conn, customer_id)
+    if recent is None:
+        return None
+    return (date.fromisoformat(recent["day"])
+            + timedelta(days=config.RENEWAL_REOFFER_DAYS)).isoformat()
 
 
 def _assess(conn, customer_id) -> dict:
@@ -249,12 +256,13 @@ def outbound_check(conn, customer_id) -> Optional[str]:
     """Why the bank must not offer this customer a loan now, or None."""
     found = _assess(conn, customer_id)
     if not found["eligible"]:
-        return "No loan may be offered. " + " ".join(found["why_not"])
-    no_offer_before = _no_offer_before(conn, customer_id)
-    if no_offer_before:
+        return ("no loan may be offered. " + " ".join(found["why_not"])).rstrip(".")
+    recent = _recent_offer(conn, customer_id)
+    if recent:
+        since = (today() - date.fromisoformat(recent["day"])).days
         return (
-            f"The customer declined an offer or started an application in the last "
-            f"{config.RENEWAL_REOFFER_DAYS} days. No new offer before {no_offer_before}."
+            f"the customer {recent['what']} {since} days ago; no new offer for "
+            f"{config.RENEWAL_REOFFER_DAYS - since} more days"
         )
     return None
 

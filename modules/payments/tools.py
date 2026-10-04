@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 import config
-from core.clock import today
+from core.clock import plain_date, today
 from core.tools import Tool, ToolError
 
 
@@ -295,17 +295,18 @@ def outbound_check(conn, customer_id) -> Optional[str]:
     """Why the bank must not start a payment conversation now, or None."""
     loan = _loan(conn, customer_id)
     if loan is None:
-        return "This customer has no loan, so there is no payment to talk about."
+        return "there is no loan, so there is no payment to talk about"
     hold = _hold_until(conn, loan)
     if hold:
+        promise = _promises(conn, loan["id"], "active")[0]
         return (
-            f"Collections hold: the customer has promised to pay by {hold}. The bank "
-            "does not contact them about this loan until then."
+            f"there is an active promise for ${promise['amount']:,.2f} due "
+            f"{plain_date(hold)}, and the hold suppresses contact until then"
         )
     if loan["installments_missed"] == 0 and _days_until_due(loan) > config.REMINDER_DAYS_BEFORE_DUE:
         return (
-            f"The next payment is due in {_days_until_due(loan)} days. Reminders start "
-            f"{config.REMINDER_DAYS_BEFORE_DUE} days before the due date."
+            f"the next payment is not due for {_days_until_due(loan)} days, and reminders "
+            f"start {config.REMINDER_DAYS_BEFORE_DUE} days before the due date"
         )
     return None
 
