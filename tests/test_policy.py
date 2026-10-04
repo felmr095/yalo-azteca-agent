@@ -144,3 +144,36 @@ def test_contact_hours_block_outbound_when_switched_on():
     finally:
         config.ENFORCE_CONTACT_HOURS = False
         clock.now = real_now
+
+
+# --- The transcript printer ---
+
+def test_transcript_shows_messages_and_tool_calls_in_order():
+    from tools import transcript
+
+    c = new_conversation("maria")
+    c.log.record("user_message", text="Hola, quiero saber mi saldo")
+    c.call_tool("get_customer_profile", {})
+    verify(c, "maria")
+    c.log.record("assistant_message", text="Gracias, ya confirmé su identidad.")
+    c.call_tool("handoff_to_human", HANDOFF)
+
+    text = transcript.render(transcript.read(c.log.path))
+    lines = text.splitlines()
+    assert lines[1].endswith("chat from +52 55 5550 0101 · use cases: payments, renewal")
+    assert "Cliente: Hola, quiero saber mi saldo" in lines
+    assert "Agente:  Gracias, ya confirmé su identidad." in lines
+    assert "  [get_customer_profile() -> REFUSED: Identity not verified." in text
+    assert '  [verify_identity(date_of_birth="1988-03-14", account_last4="1234") -> ok:' in text
+    assert text.index("quiero saber mi saldo") < text.index("REFUSED") < text.index("ya confirmé")
+    assert lines[-1].startswith("Recorded: handoff (reason=customer_request")
+
+
+def test_transcript_cuts_long_results_unless_asked_for_all():
+    from tools import transcript
+
+    c = new_conversation("jose", verified=True)
+    c.call_tool("get_loan_status", {})
+    short = transcript.render(c.log.events)
+    full = transcript.render(c.log.events, full=True)
+    assert "promise_limits" not in short and "promise_limits" in full

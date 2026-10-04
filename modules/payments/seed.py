@@ -20,6 +20,18 @@ CREATE TABLE IF NOT EXISTS payment_promises (
     offer_id      TEXT,                     -- set if made under the catch-up program
     amount_waived REAL NOT NULL DEFAULT 0   -- what the program waives if it is kept
 );
+
+-- Every catch-up offer worked out for a customer, accepted or not.
+CREATE TABLE IF NOT EXISTS regularization_offers (
+    offer_id      TEXT PRIMARY KEY,
+    loan_id       INTEGER NOT NULL REFERENCES loans(id),
+    amount_owed   REAL NOT NULL,
+    amount_waived REAL NOT NULL,
+    weeks_late    INTEGER NOT NULL,
+    amount_to_pay REAL NOT NULL,
+    pay_by_date   TEXT NOT NULL,
+    shown_on      TEXT NOT NULL
+);
 """
 
 PROMISES = [

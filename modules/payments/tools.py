@@ -197,7 +197,15 @@ def compute_regularization_offer(session) -> dict:
     refusal = _offer_refusal(session.conn, loan)
     if refusal:
         raise ToolError(refusal)
-    return _offer(loan)
+    offer = _offer(loan)
+    # Keep a record that the offer was shown. It commits the customer to nothing.
+    session.conn.execute(
+        "INSERT OR REPLACE INTO regularization_offers VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (offer["offer_id"], loan["id"], offer["amount_owed"], offer["amount_waived"],
+         offer["weeks_late"], offer["amount_to_pay"], offer["pay_by_date"], today().isoformat()),
+    )
+    session.conn.commit()
+    return offer
 
 
 def get_payment_options(session) -> dict:
@@ -302,6 +310,36 @@ def outbound_check(conn, customer_id) -> Optional[str]:
     return None
 
 
+def outcome(conn, customer_id) -> dict:
+    """The customer's promise and catch-up offer, for the outcome summary."""
+    summary = {"Promise": "none", "Offer shown": "none"}
+    loan = _loan(conn, customer_id)
+    if loan is None:
+        return summary
+    active = _promises(conn, loan["id"], "active")
+    if active:
+        p = active[0]
+        summary["Promise"] = (
+            f"${p['amount']:,.2f} on {p['promised_date']}, hold until "
+            f"{_hold_until(conn, loan) or 'ended'}"
+            + (f", under {config.REGULARIZATION_NAME}" if p["offer_id"] else "")
+            + (" (made in this conversation)" if p["created_on"] == today().isoformat()
+               else " (made earlier)")
+        )
+    offer = conn.execute(
+        "SELECT * FROM regularization_offers WHERE loan_id = ? ORDER BY shown_on DESC LIMIT 1",
+        (loan["id"],),
+    ).fetchone()
+    if offer:
+        accepted = any(p["offer_id"] == offer["offer_id"] for p in active)
+        summary["Offer shown"] = (
+            f"{config.REGULARIZATION_NAME}: owes ${offer['amount_owed']:,.2f}, waived "
+            f"${offer['amount_waived']:,.2f}, pays ${offer['amount_to_pay']:,.2f} by "
+            f"{offer['pay_by_date']} ({'accepted' if accepted else 'not accepted'})"
+        )
+    return summary
+
+
 TOOLS = [
     Tool(
         name="get_loan_status",
@@ -320,7 +358,7 @@ TOOLS = [
             f"Work out the '{config.REGULARIZATION_NAME}' catch-up offer for the verified "
             "customer: the amount owed, the amount waived, the weeks late, the amount to "
             "pay and the pay-by date. It refuses, with the reason, if the loan does not "
-            "qualify. It records nothing."
+            "qualify. It commits the customer to nothing."
         ),
         handler=compute_regularization_offer,
     ),

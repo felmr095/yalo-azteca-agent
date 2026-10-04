@@ -220,6 +220,27 @@ def test_only_one_application_at_a_time():
     assert is_error and "already started" in text and len(applications(c)) == 1
 
 
+# --- The outcome summary ---
+
+def test_outcome_shows_the_quote_and_the_application():
+    c = new_conversation("carmen", verified=True)
+    assert c.outcome_summary()["Loan quoted"] == "none"
+    quote(c)
+    found = c.outcome_summary()
+    assert found["Loan quoted"] == "$5,000.00 over 52 weeks: $122.42 a week, $6,365.84 in total"
+    assert found["Loan application"] == "none" and found["Loan offer declined"] == "no"
+    reference = json.loads(apply(c)[0])["reference"]
+    assert c.outcome_summary()["Loan application"] == (
+        f"{reference}: $5,000.00 over 52 weeks, iniciada, pendiente de confirmación en la app")
+
+
+def test_outcome_shows_a_decline():
+    c = new_conversation("carmen", verified=True)
+    c.call_tool("record_offer_decline", {})
+    assert c.outcome_summary()["Loan offer declined"] == (
+        f"yes, on {in_days(0)}; no new offer before {in_days(config.RENEWAL_REOFFER_DAYS)}")
+
+
 # --- Declines and how often the bank may offer ---
 
 def test_bank_may_offer_a_loan_to_a_customer_who_qualifies():

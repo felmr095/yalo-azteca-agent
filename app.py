@@ -92,10 +92,12 @@ with st.sidebar:
 
     conversation = st.session_state.conversation
     session = conversation.session
-    st.subheader("Session state")
-    st.write("Identity:", "✅ verified" if session.verified else "🔒 not verified")
-    st.write("Failed attempts:", f"{session.failed_attempts} of {config.MAX_VERIFICATION_ATTEMPTS}")
-    st.write("Handed off:", "yes" if session.handed_off else "no")
+    st.subheader("Outcome")
+    for item, text in conversation.outcome_summary().items():
+        st.write(f"**{item}:** {text.replace('$', chr(92) + '$')}")
+    st.caption("What the conversation has recorded so far, read from its database after "
+               f"every reply. Failed verification attempts: {session.failed_attempts} of "
+               f"{config.MAX_VERIFICATION_ATTEMPTS}.")
     st.download_button("Download conversation log", conversation.log.as_text(),
                        file_name=f"{conversation.log.session_id}.jsonl")
     st.caption(f"Model: {config.MODEL} · effort: {config.EFFORT}")

@@ -6,7 +6,7 @@ import os
 
 from core.modules import Module
 from modules.payments.seed import setup_database
-from modules.payments.tools import TOOLS, outbound_check
+from modules.payments.tools import TOOLS, outbound_check, outcome
 
 MODULE = Module(
     name="payments",
@@ -18,4 +18,5 @@ MODULE = Module(
         "that is overdue (get_loan_status says which, once the customer is verified)"
     ),
     outbound_check=outbound_check,
+    outcome=outcome,
 )

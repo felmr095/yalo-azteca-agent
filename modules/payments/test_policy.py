@@ -258,10 +258,12 @@ def test_offer_for_five_missed_payments():
     assert found["weeks_late"] == 5 and found["amount_to_pay"] == 3240
 
 
-def test_computing_an_offer_records_nothing():
+def test_computing_an_offer_commits_the_customer_to_nothing():
     c = new_conversation("jose", verified=True)
     offer(c)
     assert not promises(c)
+    # It is still possible to make an ordinary promise, or to accept later.
+    assert not promise(c, 300, 7)[1]
 
 
 def test_no_offer_with_one_missed_payment():
@@ -383,6 +385,46 @@ def test_bank_may_not_remind_a_customer_whose_payment_is_far_off():
 
 def test_bank_may_not_contact_a_customer_without_a_loan():
     assert "no loan" in outbound_refusal(new_conversation("rosa"))
+
+
+# --- The outcome summary ---
+
+def test_outcome_shows_nothing_before_anything_happens():
+    found = new_conversation("jose").outcome_summary()
+    assert found["Identity"] == "not verified" and found["Handoff"] == "none"
+    assert found["Promise"] == "none" and found["Offer shown"] == "none"
+
+
+def test_outcome_shows_an_offer_that_was_shown_but_not_accepted():
+    c = new_conversation("jose", verified=True)
+    offer(c)
+    found = c.outcome_summary()
+    assert found["Identity"] == "verified" and found["Promise"] == "none"
+    assert found["Offer shown"] == (
+        f"Ponte al corriente: owes $914.40, waived $104.40, pays $810.00 by {in_days(7)} "
+        "(not accepted)")
+
+
+def test_outcome_shows_an_accepted_offer_as_a_promise_with_its_hold():
+    c = new_conversation("jose", verified=True)
+    promise(c, 810, 5, offer(c)["offer_id"])
+    found = c.outcome_summary()
+    assert found["Promise"] == (
+        f"$810.00 on {in_days(5)}, hold until {in_days(5)}, under Ponte al corriente "
+        "(made in this conversation)")
+    assert found["Offer shown"].endswith("(accepted)")
+
+
+def test_outcome_tells_an_earlier_promise_from_a_new_one():
+    found = new_conversation("ana").outcome_summary()
+    assert found["Promise"] == f"$450.00 on {in_days(3)}, hold until {in_days(3)} (made earlier)"
+
+
+def test_outcome_shows_the_handoff_ticket_and_reason():
+    c = new_conversation("miguel", verified=True)
+    c.call_tool("handoff_to_human", {"reason": "hardship", "summary": "Perdió su empleo."})
+    found = c.outcome_summary()
+    assert found["Handoff"] == "ticket HT-0001, reason hardship" and found["Promise"] == "none"
 
 
 # --- Where to pay, and contact details ---
