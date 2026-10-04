@@ -6,7 +6,7 @@ import os
 
 from core.modules import Module
 from modules.renewal.seed import setup_database
-from modules.renewal.tools import TOOLS, outbound_check
+from modules.renewal.tools import TOOLS, outbound_check, outcome
 
 MODULE = Module(
     name="renewal",
@@ -18,4 +18,5 @@ MODULE = Module(
         "says whether they do, once the customer is verified)"
     ),
     outbound_check=outbound_check,
+    outcome=outcome,
 )

@@ -27,6 +27,9 @@ class Module:
     # Called as outbound_check(conn, customer_id) before the bank starts a
     # conversation. Returns why it must not start one now, or None if it may.
     outbound_check: Optional[Callable] = None
+    # Called as outcome(conn, customer_id) for the outcome summary. Returns
+    # {label: text} describing what the module's tables hold for the customer.
+    outcome: Optional[Callable] = None
 
 
 def load_modules() -> List[Module]:

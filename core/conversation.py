@@ -52,6 +52,23 @@ class Conversation:
         """Run a tool exactly as the agent would. Returns (text, is_error)."""
         return self.registry.execute(self.session, name, tool_input)
 
+    def outcome_summary(self) -> dict:
+        """What the conversation has achieved so far, as {label: text}.
+
+        Identity comes from the session; everything else is read from the
+        database, so it shows what was really recorded, not what was said.
+        """
+        summary = {"Identity": "verified" if self.session.verified else "not verified"}
+        ticket = self.conn.execute(
+            "SELECT id, reason FROM handoff_tickets ORDER BY id DESC LIMIT 1").fetchone()
+        summary["Handoff"] = (
+            f"ticket HT-{ticket['id']:04d}, reason {ticket['reason']}" if ticket else "none")
+        if self.session.customer_id is not None:
+            for module in self.modules:
+                if module.outcome:
+                    summary.update(module.outcome(self.conn, self.session.customer_id))
+        return summary
+
     def send(self, user_text: str) -> str:
         """Pass one customer message to the agent and return its reply."""
         self.log.record("user_message", text=user_text)

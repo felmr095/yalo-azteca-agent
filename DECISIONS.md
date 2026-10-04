@@ -23,9 +23,17 @@ conversation**, a new lending module.
   are never offered credit. Merged into `main` and pushed. 93 policy tests
   and all 22 scripted conversations passed before the merge.
 - [ ] **M6. Demo layer**: per-session outcome summary, two rehearsed flows,
-  backup recording, today's date and time injected.
+  backup recording, today's date and time injected. *Done on branch
+  `m6-demo-layer` (2026-10-04): the outcome summary in the sidebar, and the
+  two flows written out in the README (Miguel Ángel, hardship; Carmen
+  Beatriz, renewal quote). Still to do: the backup recording, and the time
+  of day in the rulebook (D17).*
 - [ ] **M7. README** (run, test, deploy), an assumptions list generated from
-  `config.py`, and a note on the AI tools used.
+  `config.py`, and a note on the AI tools used. *Done on branch
+  `m6-demo-layer` (2026-10-04): the README, rewritten for a reviewer who
+  has not seen the project, and `python -m tools.transcript` to read a
+  conversation log. Still to do: the assumptions list and the note on AI
+  tools.*
 - [ ] Optional: lower effort or streamed replies, for speed (see D5).
 
 ## Open

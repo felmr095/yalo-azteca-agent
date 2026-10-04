@@ -259,6 +259,36 @@ def outbound_check(conn, customer_id) -> Optional[str]:
     return None
 
 
+def outcome(conn, customer_id) -> dict:
+    """The customer's quote, application and decline, for the outcome summary."""
+    summary = {"Loan quoted": "none", "Loan application": "none", "Loan offer declined": "no"}
+    quote = conn.execute(
+        "SELECT * FROM loan_quotes WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
+        (customer_id,)).fetchone()
+    if quote:
+        summary["Loan quoted"] = (
+            f"${quote['amount']:,.2f} over {quote['term_weeks']} weeks: "
+            f"${quote['weekly_payment']:,.2f} a week, ${quote['total_to_pay']:,.2f} in total"
+        )
+    application = conn.execute(
+        "SELECT * FROM loan_applications WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
+        (customer_id,)).fetchone()
+    if application:
+        summary["Loan application"] = (
+            f"{application['reference']}: ${application['amount']:,.2f} over "
+            f"{application['term_weeks']} weeks, {application['status']}"
+        )
+    declined = conn.execute(
+        "SELECT declined_on FROM renewal_declines WHERE customer_id = ?"
+        " ORDER BY declined_on DESC LIMIT 1", (customer_id,)).fetchone()
+    if declined:
+        summary["Loan offer declined"] = (
+            f"yes, on {declined['declined_on']}; no new offer before "
+            f"{_no_offer_before(conn, customer_id) or 'now'}"
+        )
+    return summary
+
+
 AMOUNT_AND_TERM = {
     "amount": {"type": "number", "description": "Pesos"},
     "term_weeks": {"type": "integer", "description": "Number of weekly payments"},
