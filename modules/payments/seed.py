@@ -1,6 +1,6 @@
 """The payment assistant's own table and fake data.
 
-Commitments are attached to the core customers by phone number. As in
+Promises are attached to the core customers by phone number. As in
 data/seed.py, dates are "days from today": due_in_days=-10 means the
 promised date was 10 days ago.
 """
@@ -11,20 +11,20 @@ from core.clock import today
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS payment_promises (
-    id              INTEGER PRIMARY KEY,
-    loan_id         INTEGER NOT NULL REFERENCES loans(id),
-    kind            TEXT NOT NULL DEFAULT 'promise',  -- promise or regularization
-    amount          REAL NOT NULL,
-    interest_waived REAL NOT NULL DEFAULT 0,          -- only for a regularization
-    promised_date   TEXT NOT NULL,
-    status          TEXT NOT NULL,                    -- active, kept or broken
-    created_on      TEXT NOT NULL
+    id            INTEGER PRIMARY KEY,
+    loan_id       INTEGER NOT NULL REFERENCES loans(id),
+    amount        REAL NOT NULL,
+    promised_date TEXT NOT NULL,
+    status        TEXT NOT NULL,            -- active, kept or broken
+    created_on    TEXT NOT NULL,
+    offer_id      TEXT,                     -- set if made under the catch-up program
+    amount_waived REAL NOT NULL DEFAULT 0   -- what the program waives if it is kept
 );
 """
 
 PROMISES = [
     # Ana Karen: already has an active promise.
-    {"phone": "+52 33 5550 0103", "amount": 410, "due_in_days": 3, "status": "active"},
+    {"phone": "+52 33 5550 0103", "amount": 450, "due_in_days": 3, "status": "active"},
     # Miguel Ángel: broke one promise.
     {"phone": "+52 222 555 0104", "amount": 1040, "due_in_days": -10, "status": "broken"},
     # Juan Carlos: broke two promises.

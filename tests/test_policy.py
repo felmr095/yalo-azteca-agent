@@ -78,6 +78,15 @@ def test_handoff_works_without_verification():
     assert not is_error
 
 
+def test_third_party_handoff_ends_the_conversation_quietly():
+    c = new_conversation("maria")
+    text, is_error = c.call_tool("handoff_to_human", {
+        "reason": "third_party", "summary": "Contestó un familiar, no el titular."})
+    assert not is_error and "say goodbye" in text and "will continue" not in text
+    ticket = c.conn.execute("SELECT * FROM handoff_tickets").fetchone()
+    assert ticket["reason"] == "third_party" and ticket["verified"] == 0
+
+
 def test_unexpected_input_fields_are_rejected():
     c = new_conversation("maria", verified=True)
     _, is_error = c.call_tool("get_customer_profile", {"customer_id": 2})

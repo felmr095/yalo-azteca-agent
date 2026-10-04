@@ -46,39 +46,60 @@ ENFORCE_CONTACT_HOURS = False
 # Folder names under modules/ that are switched on.
 ENABLED_MODULES = ["payments"]
 
-# --- Payment assistant module (ALL ASSUMPTIONS, placeholders for real policy) ---
-# The bank may send a payment reminder this many days before the due date.
-REMINDER_DAYS_BEFORE_DUE = 5
-# Late interest charged per day on the overdue amount, in percent.
-LATE_INTEREST_DAILY_PERCENT = 0.2
-# A payment promise must be dated at most this many days from today. The
-# bank does not do this today: its phone promise is for the same day.
+# --- Loans ---
+# ASSUMPTION: the size of the bank's discount for paying a weekly payment on
+# time is not known. The seed data uses it to derive the on-time payment
+# from the standard one.
+ON_TIME_DISCOUNT_PERCENT = 10
+
+# --- Payment assistant module ---
+# Each value is marked "bank doc" (taken from the bank's published terms, as
+# reported in the plan; Claude has not seen the pages) or ASSUMPTION.
+#
+# ASSUMPTION: the bank may send a payment reminder this many days before the
+# due date.
+REMINDER_DAYS_BEFORE_DUE = 2
+# ASSUMPTION, informational only: nothing enforces it, because the demo
+# starts one conversation at a time.
+MAX_REMINDERS_PER_WEEK = 2
+# ASSUMPTION, and a proposed change: a payment promise must be dated at most
+# this many days from today. The bank's phone promise today is same-day.
 PROMISE_MAX_DAYS = 15
-# A promise must be for at least one weekly payment and at most the total
-# overdue (overdue payments plus late interest). No number to set here.
-# Broken promises a customer may have and still make a new commitment here.
-# 1 means: one new commitment after a broken one, then a person takes over.
+# A promise must be for at least one on-time weekly payment and at most the
+# total overdue. No number to set here.
+# ASSUMPTION: broken promises a customer may have and still make a new one
+# here. 1 means: one new promise after a broken one, then a person takes over.
 MAX_BROKEN_PROMISES = 1
-# The catch-up offer: pay everything overdue by an agreed date and part of
-# the late interest is waived. One use per loan.
-REGULARIZATION_NAME = "Ponte al corriente"
-REGULARIZATION_MIN_DAYS_LATE = 7    # offered from this many days late...
-REGULARIZATION_MAX_DAYS_LATE = 60   # ...up to this many; later, a person decides
-REGULARIZATION_WAIVER_PERCENT = 50  # share of the late interest waived
-REGULARIZATION_MAX_DAYS = 7         # the customer must pay within this many days
-# Where customers can pay, and how. Quoted to the customer in Spanish.
-PAYMENT_CHANNELS = {
-    "App Banco Azteca": "en la opción de pagos de la app",
-    "Ventanilla": "en cualquier sucursal Banco Azteca, con identificación oficial",
-    "Transferencia SPEI": "con la CLABE que aparece en la app",
-    "Cobrador": "con el cobrador de Banco Azteca que ya le atiende; pida siempre su comprobante",
-}
+
+# The catch-up program. The customer pays the missed weekly payments at the
+# on-time price, plus the coming one; the late interest and the lost on-time
+# discounts are waived. Once per loan, and not for a loan that is already
+# restructured, renewed or on a plan.
+REGULARIZATION_NAME = "Ponte al corriente"   # bank doc
+REGULARIZATION_MIN_MISSED = 2                # bank doc: from 2 missed payments...
+REGULARIZATION_MAX_MISSED = 22               # bank doc: ...up to 22
+# ASSUMPTION: the program's pay-by date is this many days from today. The
+# plan does not say how the bank sets it.
+REGULARIZATION_PAY_WITHIN_DAYS = 7
+# bank doc: said to the customer when they will pay under the program.
+REGULARIZATION_CASHIER_INSTRUCTION = (
+    'Al pagar en ventanilla, diga al cajero que su pago es para el programa '
+    '"Ponte al corriente".'
+)
+# bank doc: where customers can pay.
+PAYMENT_CHANNELS = [
+    "App Banco Azteca",
+    "Ventanilla en sucursal Banco Azteca",
+    "Transferencia SPEI",
+    "Cobrador de Banco Azteca",
+]
 
 # --- Published figures (bank doc) ---
 # Annual interest rate and average CAT per product, in percent, without IVA.
 # Not used by the payment assistant; the renewal quote will read them.
-# SOURCE NEEDED: Banco Azteca's "Ponte al corriente" terms page. Paste its
-# address here. Claude could not open the page to check the figures.
+# SOURCE NEEDED: Banco Azteca's "Ponte al corriente" terms page, which is
+# also the source of every "bank doc" value above. Paste its address here.
+# Claude could not open the page to check any of them.
 PUBLISHED_RATES_SOURCE_URL = ""
 PUBLISHED_RATES = {
     "Préstamo personal": {"annual_rate": 49.62, "cat": 83.5},

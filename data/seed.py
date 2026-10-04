@@ -2,71 +2,107 @@
 
 To add a customer, copy one block in CUSTOMERS and change the values.
 Dates are written as "days from today" so the data never goes stale:
-due_in_days=-12 means the payment was due 12 days ago (the loan is late).
+due_in_days=2 means the coming weekly payment is due in 2 days.
+
+A loan is late when installments_missed is above 0. The oldest missed
+payment was then due 7 x installments_missed days before the coming one:
+2 missed and due_in_days=2 means the loan is 12 days late.
 
 Run `python -m data.seed` to write the data to data/bank.db for inspection.
 """
 
 from datetime import timedelta
 
+import config
 from core import db
 from core.clock import today
 
 CUSTOMERS = [
     {
-        # Current on her loan, no problems.
+        # Current on her loan; the next payment is due in 2 days.
         "full_name": "María Guadalupe Hernández López",
         "first_name": "María Guadalupe",
         "phone": "+52 55 5550 0101",
         "date_of_birth": "1988-03-14",
         "account": {"product": "Guardadito", "number": "4027660000001234", "balance": 1850.00},
         "loan": {"product": "Préstamo personal", "principal": 12000, "outstanding_balance": 6400,
-                 "weekly_payment": 320, "due_in_days": 4, "amount_overdue": 0},
-        "payments_days_ago": [3, 10, 17],
+                 "installment_standard": 400, "due_in_days": 2, "installments_missed": 0,
+                 "late_interest_accrued": 0, "has_plan": False},
+        "payments_days_ago": [5, 12, 19],
     },
     {
-        # Late by 12 days, first time.
+        # 1 payment missed (3 days late): too early for the catch-up program.
+        "full_name": "Laura Patricia Gómez Ruiz",
+        "first_name": "Laura Patricia",
+        "phone": "+52 656 555 0107",
+        "date_of_birth": "1993-12-05",
+        "account": {"product": "Guardadito", "number": "4027660000007890", "balance": 130.00},
+        "loan": {"product": "Préstamo personal", "principal": 6000, "outstanding_balance": 4100,
+                 "installment_standard": 250, "due_in_days": 4, "installments_missed": 1,
+                 "late_interest_accrued": 2.25, "has_plan": False},
+        "payments_days_ago": [10, 17],
+    },
+    {
+        # 2 payments missed (12 days late): eligible for the catch-up program.
         "full_name": "José Luis Ramírez Torres",
         "first_name": "José Luis",
         "phone": "+52 81 5550 0102",
         "date_of_birth": "1979-11-02",
         "account": {"product": "Guardadito", "number": "4027660000002345", "balance": 210.50},
         "loan": {"product": "Préstamo personal", "principal": 8000, "outstanding_balance": 5200,
-                 "weekly_payment": 260, "due_in_days": -12, "amount_overdue": 520},
+                 "installment_standard": 300, "due_in_days": 2, "installments_missed": 2,
+                 "late_interest_accrued": 14.40, "has_plan": False},
         "payments_days_ago": [19, 26],
     },
     {
-        # Late by 5 days.
-        "full_name": "Ana Karen Flores Mendoza",
-        "first_name": "Ana Karen",
-        "phone": "+52 33 5550 0103",
-        "date_of_birth": "1995-07-21",
-        "account": {"product": "Guardadito", "number": "4027660000003456", "balance": 95.00},
-        "loan": {"product": "Crédito de consumo", "principal": 15000, "outstanding_balance": 11300,
-                 "weekly_payment": 410, "due_in_days": -5, "amount_overdue": 410},
-        "payments_days_ago": [12, 19, 26],
-    },
-    {
-        # Late by 30 days, no recent payments.
+        # 5 payments missed (30 days late): eligible for the catch-up program.
         "full_name": "Miguel Ángel Sánchez Cruz",
         "first_name": "Miguel Ángel",
         "phone": "+52 222 555 0104",
         "date_of_birth": "1984-01-30",
         "account": {"product": "Guardadito", "number": "4027660000004567", "balance": 0.00},
         "loan": {"product": "Préstamo personal", "principal": 20000, "outstanding_balance": 17650,
-                 "weekly_payment": 520, "due_in_days": -30, "amount_overdue": 2080},
+                 "installment_standard": 600, "due_in_days": 5, "installments_missed": 5,
+                 "late_interest_accrued": 186.00, "has_plan": False},
         "payments_days_ago": [37],
     },
     {
-        # Late by 21 days.
+        # 3 payments missed (21 days late) and two broken promises.
         "full_name": "Juan Carlos Pérez García",
         "first_name": "Juan Carlos",
         "phone": "+52 442 555 0106",
         "date_of_birth": "1991-05-17",
         "account": {"product": "Guardadito", "number": "4027660000006789", "balance": 40.00},
         "loan": {"product": "Préstamo personal", "principal": 10000, "outstanding_balance": 8900,
-                 "weekly_payment": 300, "due_in_days": -21, "amount_overdue": 900},
+                 "installment_standard": 350, "due_in_days": 0, "installments_missed": 3,
+                 "late_interest_accrued": 44.10, "has_plan": False},
         "payments_days_ago": [28, 35],
+    },
+    {
+        # 3 payments missed (18 days late), but the loan is already on a plan,
+        # which excludes it from the catch-up program.
+        "full_name": "Luis Fernando Castillo Vega",
+        "first_name": "Luis Fernando",
+        "phone": "+52 999 555 0108",
+        "date_of_birth": "1975-08-23",
+        "account": {"product": "Guardadito", "number": "4027660000008901", "balance": 65.00},
+        "loan": {"product": "Crédito de consumo", "principal": 9000, "outstanding_balance": 7300,
+                 "installment_standard": 400, "due_in_days": 3, "installments_missed": 3,
+                 "late_interest_accrued": 50.40, "has_plan": True},
+        "payments_days_ago": [25, 32],
+    },
+    {
+        # 1 payment missed (5 days late); already has a payment promise (see
+        # modules/payments/seed.py).
+        "full_name": "Ana Karen Flores Mendoza",
+        "first_name": "Ana Karen",
+        "phone": "+52 33 5550 0103",
+        "date_of_birth": "1995-07-21",
+        "account": {"product": "Guardadito", "number": "4027660000003456", "balance": 95.00},
+        "loan": {"product": "Crédito de consumo", "principal": 15000, "outstanding_balance": 11300,
+                 "installment_standard": 450, "due_in_days": 2, "installments_missed": 1,
+                 "late_interest_accrued": 4.50, "has_plan": False},
+        "payments_days_ago": [12, 19, 26],
     },
     {
         # Savings only, no loan.
@@ -83,6 +119,11 @@ CUSTOMERS = [
 
 def _days_from_today(days: int) -> str:
     return (today() + timedelta(days=days)).isoformat()
+
+
+def on_time_installment(standard: float) -> float:
+    """The weekly payment after the discount for paying on time."""
+    return round(standard * (1 - config.ON_TIME_DISCOUNT_PERCENT / 100), 2)
 
 
 def seed_core(conn) -> None:
@@ -102,16 +143,19 @@ def seed_core(conn) -> None:
         loan = c["loan"]
         if loan is None:
             continue
+        on_time = on_time_installment(loan["installment_standard"])
         loan_id = conn.execute(
             "INSERT INTO loans (customer_id, product, principal, outstanding_balance,"
-            " weekly_payment, next_due_date, amount_overdue) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            " installment_on_time, installment_standard, next_due_date, installments_missed,"
+            " late_interest_accrued, has_plan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (customer_id, loan["product"], loan["principal"], loan["outstanding_balance"],
-             loan["weekly_payment"], _days_from_today(loan["due_in_days"]), loan["amount_overdue"]),
+             on_time, loan["installment_standard"], _days_from_today(loan["due_in_days"]),
+             loan["installments_missed"], loan["late_interest_accrued"], int(loan["has_plan"])),
         ).lastrowid
         for days_ago in c["payments_days_ago"]:
             conn.execute(
                 "INSERT INTO payments (loan_id, amount, paid_on, channel) VALUES (?, ?, ?, ?)",
-                (loan_id, loan["weekly_payment"], _days_from_today(-days_ago), "sucursal"),
+                (loan_id, on_time, _days_from_today(-days_ago), "sucursal"),
             )
     conn.commit()
 

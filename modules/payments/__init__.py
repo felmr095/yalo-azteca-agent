@@ -1,5 +1,5 @@
 """Payment assistant use case: payment reminders, overdue loans, the
-catch-up offer and payment promises.
+"Ponte al corriente" catch-up program and payment promises.
 """
 
 import os

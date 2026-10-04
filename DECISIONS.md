@@ -12,13 +12,14 @@ Agreed 2026-10-03 with the planning agent. Use cases: **(A) payment
 assistant**, a reshape of the collections module, and **(B) renewal
 conversation**, a new lending module.
 
-- [ ] **M4a. Deploy** the current build. Nothing else starts until the
-  public link works from Felipe's phone. Needs D1, D2 and D4 first.
+- [x] **M4a. Deploy** the current build (2026-10-04): live at
+  https://yalo-azteca-agent.streamlit.app, from `main`.
 - [ ] **M4b. Payment assistant**: reshape collections. Add the regularization
   offer, the collections hold, payment options and the reminder opening;
   remove the phone-change tool; seven new scripted tests. *Built on branch
-  `m4b-payment-assistant` (2026-10-03), all tests passing. Not merged: it
-  waits for M4a, and for Felipe's answer to D22.*
+  `m4b-payment-assistant` and reconciled against the planner's spec
+  (2026-10-04). 65 policy tests and 16 scripted conversations pass. Not
+  merged: it waits for Felipe's confirmation.*
 - [ ] **M5. Renewal module**: eligibility, quote, start application, record
   decline; the cross-module rule that late customers are never offered
   credit; five scripted tests.
@@ -30,7 +31,7 @@ conversation**, a new lending module.
 
 ## Open
 
-### Actions for Felipe before deploying (M4a)
+### Actions for Felipe
 
 - [ ] **D1. Rotate the API key.** Decided 2026-10-03: yes, before deploying.
   The key was printed into the Claude session log on 2026-10-02. Revoke it
@@ -38,8 +39,12 @@ conversation**, a new lending module.
   `.streamlit/secrets.toml`.
 - [ ] **D2. Set a spend limit on the API key.** Decided 2026-10-03: yes,
   before deploying.
-- [ ] **D4. Push to GitHub and deploy to Streamlit Community Cloud.** This is
-  M4a.
+- [ ] **D24. Set GitHub's default branch to `main`.** It is
+  `m4b-payment-assistant`, because the first push went out while that
+  branch was checked out. Claude could not change it (the `gh` tool is not
+  installed). Change it at
+  https://github.com/felmr095/yalo-azteca-agent/settings, under General >
+  Default branch.
 
 ### Agent behaviour
 
@@ -51,28 +56,20 @@ conversation**, a new lending module.
 
 ### Payment assistant
 
-- [ ] **D22. Confirm or correct how M4b was built.** The planning agent's
-  detailed spec for M4b is not in the repository, only the one-line summary
-  under "Current plan", and Claude could not open the bank's pages. Claude
-  built from that summary and made the choices below. Every number is in
-  `config.py`, labelled as an assumption. *Default: they stay as built.*
-  - **Regularization offer ("Ponte al corriente"):** pay everything overdue
-    within 7 days and 50% of the late interest is waived. Offered from 7 to
-    60 days late, once per loan, and not after two broken promises.
-  - **Late interest:** 0.2% of the overdue amount per day late. The mock
-    bank had no late interest before; the offer needs something to waive.
-  - **Collections hold:** while a promise or an accepted offer is active and
-    not yet due, the bank cannot start a payment conversation with that
-    customer. It is derived from the commitment, not stored separately.
-  - **Payment options:** one tool. It tells anyone where and how to pay,
-    and tells a verified customer what they can pay. The "how" text for
-    each channel is invented.
-  - **Reminder opening:** the bank may write first from 5 days before a
-    payment is due. It opens exactly like a collections contact and says
-    nothing about the loan until identity is verified.
-  - **Seven new scripted tests:** reminder, offer accepted, amount below the
-    minimum, hardship, disputed debt, phone change, and "where can I pay?"
-    from an unknown number.
+- [ ] **D23. What the outbound opening says before verification.** The spec
+  says the opening "states the bank and reason". An earlier decision
+  (2026-10-02) says nothing about the debt is said until identity is
+  verified, and the spec itself forbids discussing the debt with anyone but
+  the verified holder. *Default: the opening names the bank and gives the
+  reason only as "un asunto de su cuenta"; the loan is first mentioned
+  after verification.*
+- [ ] **D25. Numbers the spec leaves open.** Each is in `config.py`,
+  labelled as an assumption. *Default: they stay as set.*
+  - **On-time discount:** 10% off the standard weekly payment.
+  - **Pay-by date of the program:** 7 days from today.
+  - **Promise by a customer who is not late yet** (the "hasta el martes"
+    test): allowed for a date after the due date, for one weekly payment,
+    between the on-time and the standard price.
 
 ### Demo
 
@@ -88,6 +85,18 @@ conversation**, a new lending module.
 
 ## Done
 
+- [x] **D22. How M4b was built** (2026-10-04): replaced by the planner's
+  spec. The invented offer (50% of late interest, 7 to 60 days late) and
+  the invented daily late-interest rate are gone. "Ponte al corriente" now
+  follows the bank's program as the spec gives it: 2 to 22 missed payments,
+  not for a loan on a plan, once per loan; late interest and lost on-time
+  discounts waived; the customer pays the missed payments at the on-time
+  price plus the coming one. Kept from the first build: the collections
+  hold, the phone-change handoff, where-to-pay without verification, and
+  the core changes. The invented "how to pay" text per channel was dropped;
+  the four channels and the cashier instruction remain.
+- [x] **D4. Push to GitHub and deploy** (2026-10-04): done by Felipe.
+  Secrets are set in the Streamlit dashboard.
 - [x] **D18. Sources for figures labelled "bank doc"** (2026-10-03): the
   figures are the bank's own, from the "Ponte al corriente" terms page on
   bancoazteca.com.mx. Cash loans: 49.62% annual rate, 83.5% average CAT.

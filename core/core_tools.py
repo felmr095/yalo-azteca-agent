@@ -12,6 +12,7 @@ HANDOFF_REASONS = [
     "dispute_or_fraud",
     "hardship",
     "policy_limit",
+    "third_party",
     "other",
 ]
 
@@ -94,11 +95,13 @@ def handoff_to_human(session, reason: str, summary: str) -> dict:
     session.conn.commit()
     session.handed_off = True
     session.log.record("outcome", outcome="handoff", reason=reason, ticket_id=ticket_id)
-    return {
-        "ticket_id": f"HT-{ticket_id:04d}",
-        "next_step": "Tell the customer a human agent will continue the conversation. "
-                     "Do not promise a specific waiting time.",
-    }
+    if reason == "third_party":
+        next_step = ("Apologise for the interruption and say goodbye. Do not say why the "
+                     "bank wrote or that anyone will follow up.")
+    else:
+        next_step = ("Tell the customer a human agent will continue the conversation. "
+                     "Do not promise a specific waiting time.")
+    return {"ticket_id": f"HT-{ticket_id:04d}", "next_step": next_step}
 
 
 CORE_TOOLS = [

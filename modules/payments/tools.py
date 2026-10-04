@@ -1,9 +1,5 @@
 """Payment assistant tools. Every policy number comes from config.py and is
-enforced here, whatever the rulebook or the customer says.
-
-A "commitment" is a row in payment_promises: either a plain payment promise
-or an accepted catch-up offer (kind = 'regularization').
-"""
+enforced here, whatever the rulebook or the customer says."""
 
 from datetime import date, timedelta
 from typing import Optional
@@ -17,232 +13,267 @@ def _loan(conn, customer_id):
     return conn.execute("SELECT * FROM loans WHERE customer_id = ?", (customer_id,)).fetchone()
 
 
-def _commitments(conn, loan_id, status):
+def _promises(conn, loan_id, status):
     return conn.execute(
         "SELECT * FROM payment_promises WHERE loan_id = ? AND status = ? ORDER BY promised_date",
         (loan_id, status),
     ).fetchall()
 
 
+def _days_until_due(loan) -> int:
+    return (date.fromisoformat(loan["next_due_date"]) - today()).days
+
+
 def _days_late(loan) -> int:
-    return max((today() - date.fromisoformat(loan["next_due_date"])).days, 0)
+    """Days since the oldest missed weekly payment was due."""
+    if loan["installments_missed"] == 0:
+        return 0
+    return 7 * loan["installments_missed"] - _days_until_due(loan)
 
 
-def _late_interest(loan) -> float:
-    return round(
-        loan["amount_overdue"] * config.LATE_INTEREST_DAILY_PERCENT / 100 * _days_late(loan), 2
-    )
+def _amount_overdue(loan) -> float:
+    """Missed payments are owed at the standard price: the discount is lost."""
+    return round(loan["installments_missed"] * loan["installment_standard"], 2)
 
 
 def _total_overdue(loan) -> float:
-    return round(loan["amount_overdue"] + _late_interest(loan), 2)
-
-
-def _minimum_promise(loan) -> float:
-    """One weekly payment, or everything overdue if that is less."""
-    return min(loan["weekly_payment"], _total_overdue(loan))
+    return round(_amount_overdue(loan) + loan["late_interest_accrued"], 2)
 
 
 def _hold_until(conn, loan) -> Optional[str]:
-    """The collections hold: while a commitment is active and not yet due,
-    the bank does not contact the customer about this loan."""
-    active = _commitments(conn, loan["id"], "active")
+    """The collections hold: while a promise is active and not yet due, the
+    bank does not contact the customer about this loan."""
+    active = _promises(conn, loan["id"], "active")
     if active and date.fromisoformat(active[0]["promised_date"]) >= today():
         return active[0]["promised_date"]
     return None
 
 
-def _commitment_refusal(conn, loan) -> Optional[str]:
-    """Why this customer cannot make any new commitment, or None if they can."""
-    if loan is None or loan["amount_overdue"] <= 0:
-        return "This customer has no overdue amount, so no payment commitment is needed."
-    if _commitments(conn, loan["id"], "active"):
+def _promise_refusal(conn, loan) -> Optional[str]:
+    """Why this customer cannot make a new promise, or None if they can."""
+    if loan is None:
+        return "This customer has no loan, so there is nothing to promise."
+    if _promises(conn, loan["id"], "active"):
         return (
-            "The customer already has an active payment commitment. A second one cannot "
+            "The customer already has an active payment promise. A second one cannot "
             "be registered. Remind them of the existing one (see get_loan_status)."
         )
-    if len(_commitments(conn, loan["id"], "broken")) > config.MAX_BROKEN_PROMISES:
+    if len(_promises(conn, loan["id"], "broken")) > config.MAX_BROKEN_PROMISES:
         return (
-            "The customer has broken too many promises to make a new commitment here. "
+            "The customer has broken too many promises to make a new one here. "
             "Hand off with reason 'policy_limit'."
         )
     return None
 
 
-def _regularization_refusal(conn, loan) -> Optional[str]:
-    """Why the catch-up offer is not available, or None if it is."""
-    refusal = _commitment_refusal(conn, loan)
-    if refusal:
-        return refusal
-    days_late = _days_late(loan)
-    if days_late < config.REGULARIZATION_MIN_DAYS_LATE:
+def _offer_refusal(conn, loan) -> Optional[str]:
+    """Why the catch-up program is not available, or None if it is."""
+    name = config.REGULARIZATION_NAME
+    if loan is None:
+        return "This customer has no loan."
+    missed = loan["installments_missed"]
+    if missed < config.REGULARIZATION_MIN_MISSED:
         return (
-            f"'{config.REGULARIZATION_NAME}' is offered from "
-            f"{config.REGULARIZATION_MIN_DAYS_LATE} days late; this loan is {days_late} "
-            "days late. The customer can pay what is overdue or register a promise."
+            f"'{name}' is for loans with at least {config.REGULARIZATION_MIN_MISSED} missed "
+            f"weekly payments; this loan has {missed}. The customer can pay what is due "
+            "or register a payment promise."
         )
-    if days_late > config.REGULARIZATION_MAX_DAYS_LATE:
+    if missed > config.REGULARIZATION_MAX_MISSED:
         return (
-            f"'{config.REGULARIZATION_NAME}' is not available after "
-            f"{config.REGULARIZATION_MAX_DAYS_LATE} days late. Hand off with reason "
-            "'policy_limit'."
+            f"'{name}' is for loans with at most {config.REGULARIZATION_MAX_MISSED} missed "
+            f"weekly payments; this loan has {missed}. Hand off with reason 'policy_limit'."
+        )
+    if loan["has_plan"]:
+        return (
+            f"'{name}' is not available for a loan that is already restructured, renewed "
+            "or on a plan. The customer can still register a payment promise. If they "
+            "insist on the program, hand off with reason 'policy_limit'."
         )
     used = conn.execute(
-        "SELECT 1 FROM payment_promises WHERE loan_id = ? AND kind = 'regularization'",
+        "SELECT 1 FROM payment_promises WHERE loan_id = ? AND offer_id IS NOT NULL",
         (loan["id"],),
     ).fetchone()
     if used:
         return (
-            f"'{config.REGULARIZATION_NAME}' was already used on this loan and can be "
-            "used only once. The customer can still register a promise."
+            f"'{name}' was already used on this loan and can be used only once. "
+            "Remind the customer of it if it is still active (see get_loan_status); "
+            "otherwise they can register a payment promise."
         )
-    return None
+    return _promise_refusal(conn, loan)
 
 
-def _regularization_terms(loan) -> dict:
-    waived = round(_late_interest(loan) * config.REGULARIZATION_WAIVER_PERCENT / 100, 2)
+def _offer(loan) -> dict:
+    missed, on_time = loan["installments_missed"], loan["installment_on_time"]
+    lost_discounts = (loan["installment_standard"] - on_time) * missed
     return {
-        "name": config.REGULARIZATION_NAME,
-        "amount_to_pay": round(_total_overdue(loan) - waived, 2),
-        "late_interest_waived": waived,
-        "latest_pay_by_date": (
-            today() + timedelta(days=config.REGULARIZATION_MAX_DAYS)).isoformat(),
-        "condition": "The waiver applies only if the whole amount is paid by the agreed "
-                     "date. Otherwise the full late interest is owed.",
+        "offer_id": f"PAC-{loan['id']:04d}-{today():%Y%m%d}",
+        "program": config.REGULARIZATION_NAME,
+        "amount_owed": _total_overdue(loan),
+        "amount_waived": round(loan["late_interest_accrued"] + lost_discounts, 2),
+        "weeks_late": missed,
+        "amount_to_pay": round((missed + 1) * on_time, 2),
+        "pay_by_date": (
+            today() + timedelta(days=config.REGULARIZATION_PAY_WITHIN_DAYS)).isoformat(),
+        "amount_to_pay_covers": (
+            f"the {missed} missed weekly payments at the on-time price, plus the coming "
+            f"weekly payment of {on_time:.2f} pesos"
+        ),
+        "condition": "Nothing is waived unless the full amount is paid by pay_by_date.",
+        "to_accept": "Call register_payment_promise with this offer_id, amount_to_pay as "
+                     "the amount, and a date no later than pay_by_date.",
     }
 
 
-def _commitment_date(text: str, field: str, max_days: int) -> date:
+def _promise_date(text: str, latest: date) -> date:
     try:
-        chosen = date.fromisoformat(text)
+        promised = date.fromisoformat(text)
     except ValueError:
-        raise ToolError(f"{field} must be a real date written as YYYY-MM-DD.")
-    latest = today() + timedelta(days=max_days)
-    if chosen < today():
-        raise ToolError(f"{field} is in the past. Today is {today().isoformat()}.")
-    if chosen > latest:
+        raise ToolError("promised_date must be a real date written as YYYY-MM-DD.")
+    if promised < today():
+        raise ToolError(f"promised_date is in the past. Today is {today().isoformat()}.")
+    if promised > latest:
         raise ToolError(
-            f"{field} is too far away. The latest allowed date is {latest.isoformat()}."
+            f"promised_date is too far away. The latest allowed date is {latest.isoformat()}."
         )
-    return chosen
-
-
-def _register(session, loan, kind: str, amount: float, promised: date, waived: float) -> dict:
-    commitment_id = session.conn.execute(
-        "INSERT INTO payment_promises"
-        " (loan_id, kind, amount, interest_waived, promised_date, status, created_on)"
-        " VALUES (?, ?, ?, ?, ?, 'active', ?)",
-        (loan["id"], kind, amount, waived, promised.isoformat(), today().isoformat()),
-    ).lastrowid
-    session.conn.commit()
-    return {
-        "registered": True,
-        "commitment_id": commitment_id,
-        "amount": amount,
-        "pay_by_date": promised.isoformat(),
-        "collections_hold_until": promised.isoformat(),
-        "where_to_pay": config.PAYMENT_CHANNELS,
-    }
+    return promised
 
 
 def get_loan_status(session) -> dict:
     loan = _loan(session.conn, session.customer_id)
     if loan is None:
         return {"has_loan": False}
-    active = _commitments(session.conn, loan["id"], "active")
-    overdue = loan["amount_overdue"] > 0
+    late = loan["installments_missed"] > 0
+    active = _promises(session.conn, loan["id"], "active")
+    last_payment = session.conn.execute(
+        "SELECT amount, paid_on, channel FROM payments WHERE loan_id = ?"
+        " ORDER BY paid_on DESC LIMIT 1", (loan["id"],)
+    ).fetchone()
+    limits = {
+        "minimum_amount": loan["installment_on_time"],
+        "maximum_amount": _total_overdue(loan) if late else loan["installment_standard"],
+        "latest_date": (today() + timedelta(days=config.PROMISE_MAX_DAYS)).isoformat(),
+    }
+    if not late:
+        limits["note"] = (
+            "Only for a customer who cannot pay by next_due_date. The date must be after "
+            "it, and a payment made after it is at the standard price."
+        )
     return {
         "has_loan": True,
         "product": loan["product"],
         "outstanding_balance": loan["outstanding_balance"],
-        "weekly_payment": loan["weekly_payment"],
+        "installment_on_time": loan["installment_on_time"],
+        "installment_standard": loan["installment_standard"],
+        "on_time_discount": "lost while the loan is late" if late else "applies",
         "next_due_date": loan["next_due_date"],
-        "days_until_due": max((date.fromisoformat(loan["next_due_date"]) - today()).days, 0),
+        "days_until_due": _days_until_due(loan),
+        "installments_missed": loan["installments_missed"],
         "days_late": _days_late(loan),
-        "amount_overdue": loan["amount_overdue"],
-        "late_interest": _late_interest(loan),
+        "amount_overdue": _amount_overdue(loan),
+        "late_interest_accrued": loan["late_interest_accrued"],
         "total_overdue": _total_overdue(loan),
-        "active_commitment": (
-            {"kind": active[0]["kind"], "amount": active[0]["amount"],
-             "pay_by_date": active[0]["promised_date"]}
+        "last_payment_on_record": dict(last_payment) if last_payment else None,
+        "has_plan": bool(loan["has_plan"]),
+        "active_promise": (
+            {"amount": active[0]["amount"], "promised_date": active[0]["promised_date"],
+             "under_program": active[0]["offer_id"] is not None}
             if active else None
         ),
-        "collections_hold_until": _hold_until(session.conn, loan),
-        "broken_promises": len(_commitments(session.conn, loan["id"], "broken")),
-        "promise_limits": (
-            {"minimum_amount": _minimum_promise(loan),
-             "maximum_amount": _total_overdue(loan),
-             "latest_date": (today() + timedelta(days=config.PROMISE_MAX_DAYS)).isoformat()}
-            if overdue else None
-        ),
+        "hold_until": _hold_until(session.conn, loan),
+        "broken_promises": len(_promises(session.conn, loan["id"], "broken")),
+        "promise_limits": limits,
     }
 
 
-def get_payment_options(session) -> dict:
-    options = {"where_to_pay": config.PAYMENT_CHANNELS}
-    if not session.verified:
-        # Where to pay is public information; what this customer owes is not.
-        options["amounts"] = None
-        options["note"] = "Amounts are available only after verify_identity succeeds."
-        return options
+def compute_regularization_offer(session) -> dict:
     loan = _loan(session.conn, session.customer_id)
-    if loan is None:
-        options["amounts"] = None
-        options["note"] = "This customer has no loan."
-    elif loan["amount_overdue"] <= 0:
-        options["amounts"] = {
-            "next_payment": {"amount": loan["weekly_payment"], "due_date": loan["next_due_date"]},
+    refusal = _offer_refusal(session.conn, loan)
+    if refusal:
+        raise ToolError(refusal)
+    return _offer(loan)
+
+
+def get_payment_options(session) -> dict:
+    return {
+        "where_to_pay": config.PAYMENT_CHANNELS,
+        f"only_when_paying_under_{config.REGULARIZATION_NAME.lower().replace(' ', '_')}":
+            config.REGULARIZATION_CASHIER_INSTRUCTION,
+    }
+
+
+def register_payment_promise(session, amount: float, promised_date: str,
+                             offer_id: Optional[str] = None) -> dict:
+    loan = _loan(session.conn, session.customer_id)
+    refusal = _promise_refusal(session.conn, loan)
+    if refusal:
+        raise ToolError(refusal)
+    late = loan["installments_missed"] > 0
+    result = {}
+
+    if offer_id:
+        refusal = _offer_refusal(session.conn, loan)
+        if refusal:
+            raise ToolError(refusal)
+        offer = _offer(loan)
+        if offer_id != offer["offer_id"]:
+            raise ToolError(
+                "Unknown or expired offer_id. Call compute_regularization_offer again."
+            )
+        promised = _promise_date(promised_date, date.fromisoformat(offer["pay_by_date"]))
+        if abs(amount - offer["amount_to_pay"]) >= 0.01:
+            raise ToolError(
+                f"A promise under '{config.REGULARIZATION_NAME}' must be for its full "
+                f"amount: {offer['amount_to_pay']:.2f} pesos."
+            )
+        result = {
+            "program": config.REGULARIZATION_NAME,
+            "amount_waived": offer["amount_waived"],
+            "condition": offer["condition"],
+            "tell_the_customer": config.REGULARIZATION_CASHIER_INSTRUCTION,
         }
     else:
-        refusal = _regularization_refusal(session.conn, loan)
-        options["amounts"] = {
-            "to_be_up_to_date": _total_overdue(loan),
-            "catch_up_offer": (
-                {"available": False, "reason": refusal} if refusal
-                else {"available": True, **_regularization_terms(loan)}
-            ),
-        }
-    return options
+        promised = _promise_date(promised_date, today() + timedelta(days=config.PROMISE_MAX_DAYS))
+        minimum = loan["installment_on_time"]
+        if late:
+            maximum, maximum_is = _total_overdue(loan), "the total overdue"
+        else:
+            # Not late yet: the customer is saying they will miss the coming payment.
+            if promised <= date.fromisoformat(loan["next_due_date"]):
+                raise ToolError(
+                    f"No promise is needed: the payment is not due until "
+                    f"{loan['next_due_date']}. A promise is only for a later date."
+                )
+            maximum, maximum_is = loan["installment_standard"], "one weekly payment"
+        if amount < minimum:
+            raise ToolError(
+                f"The amount is too low. The minimum promise is one on-time weekly "
+                f"payment: {minimum:.2f} pesos."
+            )
+        if amount > maximum:
+            raise ToolError(
+                f"The amount is more than {maximum_is}. The maximum promise is "
+                f"{maximum:.2f} pesos."
+            )
 
-
-def register_payment_promise(session, amount: float, promised_date: str) -> dict:
-    loan = _loan(session.conn, session.customer_id)
-    refusal = _commitment_refusal(session.conn, loan)
-    if refusal:
-        raise ToolError(refusal)
-    promised = _commitment_date(promised_date, "promised_date", config.PROMISE_MAX_DAYS)
-    minimum, maximum = _minimum_promise(loan), _total_overdue(loan)
-    if amount < minimum:
-        raise ToolError(
-            f"The amount is too low. The minimum promise is one weekly payment: "
-            f"{minimum:.2f} pesos."
-        )
-    if amount > maximum:
-        raise ToolError(
-            f"The amount is more than the total overdue. The maximum promise is "
-            f"{maximum:.2f} pesos."
-        )
-    result = _register(session, loan, "promise", amount, promised, waived=0)
-    session.log.record("outcome", outcome="promise_registered",
-                       amount=amount, promised_date=promised_date)
-    return result
-
-
-def accept_regularization_offer(session, pay_by_date: str) -> dict:
-    loan = _loan(session.conn, session.customer_id)
-    refusal = _regularization_refusal(session.conn, loan)
-    if refusal:
-        raise ToolError(refusal)
-    pay_by = _commitment_date(pay_by_date, "pay_by_date", config.REGULARIZATION_MAX_DAYS)
-    terms = _regularization_terms(loan)
-    result = _register(session, loan, "regularization", terms["amount_to_pay"], pay_by,
-                       waived=terms["late_interest_waived"])
-    result["late_interest_waived"] = terms["late_interest_waived"]
-    result["condition"] = terms["condition"]
-    session.log.record("outcome", outcome="regularization_accepted",
-                       amount=terms["amount_to_pay"], pay_by_date=pay_by_date,
-                       late_interest_waived=terms["late_interest_waived"])
-    return result
+    promise_id = session.conn.execute(
+        "INSERT INTO payment_promises"
+        " (loan_id, amount, promised_date, status, created_on, offer_id, amount_waived)"
+        " VALUES (?, ?, ?, 'active', ?, ?, ?)",
+        (loan["id"], amount, promised.isoformat(), today().isoformat(),
+         offer_id or None, result.get("amount_waived", 0)),
+    ).lastrowid
+    session.conn.commit()
+    session.log.record("outcome", outcome="promise_registered", amount=amount,
+                       promised_date=promised_date, under_program=bool(offer_id))
+    return {
+        "registered": True,
+        "promise_id": promise_id,
+        "amount": amount,
+        "promised_date": promised.isoformat(),
+        "hold_until": promised.isoformat(),
+        "where_to_pay": config.PAYMENT_CHANNELS,
+        **result,
+    }
 
 
 def outbound_check(conn, customer_id) -> Optional[str]:
@@ -253,16 +284,14 @@ def outbound_check(conn, customer_id) -> Optional[str]:
     hold = _hold_until(conn, loan)
     if hold:
         return (
-            f"Collections hold: the customer has committed to pay by {hold}. The bank "
+            f"Collections hold: the customer has promised to pay by {hold}. The bank "
             "does not contact them about this loan until then."
         )
-    if loan["amount_overdue"] <= 0:
-        days_until_due = (date.fromisoformat(loan["next_due_date"]) - today()).days
-        if days_until_due > config.REMINDER_DAYS_BEFORE_DUE:
-            return (
-                f"The next payment is due in {days_until_due} days. Reminders start "
-                f"{config.REMINDER_DAYS_BEFORE_DUE} days before the due date."
-            )
+    if loan["installments_missed"] == 0 and _days_until_due(loan) > config.REMINDER_DAYS_BEFORE_DUE:
+        return (
+            f"The next payment is due in {_days_until_due(loan)} days. Reminders start "
+            f"{config.REMINDER_DAYS_BEFORE_DUE} days before the due date."
+        )
     return None
 
 
@@ -270,20 +299,29 @@ TOOLS = [
     Tool(
         name="get_loan_status",
         description=(
-            "Get the verified customer's loan: balance, weekly payment, when the next "
-            "payment is due or how late it is, late interest, any active payment "
-            "commitment and the collections hold that goes with it, how many promises "
-            "were broken, and the limits a new promise must respect."
+            "Get the verified customer's loan: the weekly payment at its on-time and "
+            "standard price, when the next one is due, how many are missed, late "
+            "interest, the last payment on record, whether the loan is on a plan, any "
+            "active payment promise and the collections hold that goes with it, how "
+            "many promises were broken, and the limits a new promise must respect."
         ),
         handler=get_loan_status,
     ),
     Tool(
+        name="compute_regularization_offer",
+        description=(
+            f"Work out the '{config.REGULARIZATION_NAME}' catch-up offer for the verified "
+            "customer: the amount owed, the amount waived, the weeks late, the amount to "
+            "pay and the pay-by date. It refuses, with the reason, if the loan does not "
+            "qualify. It records nothing."
+        ),
+        handler=compute_regularization_offer,
+    ),
+    Tool(
         name="get_payment_options",
         description=(
-            "Get where and how a loan can be paid. Before verification it returns only "
-            "that. For a verified customer it also returns what they can pay: the next "
-            f"payment, or the total overdue and the '{config.REGULARIZATION_NAME}' "
-            "catch-up offer if they qualify."
+            "Get where a loan can be paid. Works without verification: it contains "
+            "nothing about any customer."
         ),
         handler=get_payment_options,
         requires_verification=False,
@@ -292,25 +330,20 @@ TOOLS = [
         name="register_payment_promise",
         description=(
             "Record the customer's commitment to pay a given amount on a given date. "
-            "Call it only after the customer has clearly agreed to both."
+            "Call it only after the customer has clearly agreed to both. To accept a "
+            f"'{config.REGULARIZATION_NAME}' offer, also pass its offer_id; the amount "
+            "must then be the offer's amount_to_pay."
         ),
         handler=register_payment_promise,
         properties={
             "amount": {"type": "number", "description": "Pesos"},
             "promised_date": {"type": "string", "description": "YYYY-MM-DD"},
+            "offer_id": {
+                "type": "string",
+                "description": "From compute_regularization_offer. Leave out for an "
+                               "ordinary promise.",
+            },
         },
         required=["amount", "promised_date"],
-    ),
-    Tool(
-        name="accept_regularization_offer",
-        description=(
-            f"Record that the customer accepts the '{config.REGULARIZATION_NAME}' "
-            "catch-up offer returned by get_payment_options and will pay its full "
-            "amount by a given date. Call it only after the customer has clearly "
-            "agreed to the amount and the date."
-        ),
-        handler=accept_regularization_offer,
-        properties={"pay_by_date": {"type": "string", "description": "YYYY-MM-DD"}},
-        required=["pay_by_date"],
     ),
 ]
