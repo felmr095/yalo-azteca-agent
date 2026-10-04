@@ -16,7 +16,9 @@ conversation**, a new lending module.
   public link works from Felipe's phone. Needs D1, D2 and D4 first.
 - [ ] **M4b. Payment assistant**: reshape collections. Add the regularization
   offer, the collections hold, payment options and the reminder opening;
-  remove the phone-change tool; seven new scripted tests.
+  remove the phone-change tool; seven new scripted tests. *Built on branch
+  `m4b-payment-assistant` (2026-10-03), all tests passing. Not merged: it
+  waits for M4a, and for Felipe's answer to D22.*
 - [ ] **M5. Renewal module**: eligibility, quote, start application, record
   decline; the cross-module rule that late customers are never offered
   credit; five scripted tests.
@@ -43,23 +45,34 @@ conversation**, a new lending module.
 
 - [ ] **D5. Reply speed.** Decided 2026-10-03: use `EFFORT = "low"` for the
   demo if the scripted tests still pass at that level. *Pending that test.*
-- [ ] **D18. Sources for figures labelled "bank doc".** The plan cites the
-  "Ponte al corriente" program terms, a 49.62% annual rate and an 83.5% CAT
-  as Banco Azteca's published figures. Claude cannot verify these. *Default:
-  used as given, with a "source needed" note in `config.py` until you add
-  the links.*
-- [ ] **D19. Contact hours (7:00–21:00).** Enforcing these in code would
-  block outbound demos in the evening. *Default: stated in the rulebook, and
-  checked in code only when a config switch is on (off for the demo).*
-- [ ] **D20. Time zone for "today" and "now".** *Default: Mexico City.*
+- [ ] **D18b. Paste the address of the "Ponte al corriente" terms page**
+  into `PUBLISHED_RATES_SOURCE_URL` in `config.py`. Reference it by address
+  only; no PDFs in the repository. See D18 under Done.
 
-### Renewal module
+### Payment assistant
 
-- [ ] **D21. Reading of "45 of 52 paid on time" for seed customer 7.** If it
-  means 45 of 52 installments were on time, the on-time ratio is 86.5%,
-  below the 90% eligibility rule, and the showcase customer would be
-  refused. *Default: 45 installments paid so far, all on time (100% on time,
-  86.5% repaid).*
+- [ ] **D22. Confirm or correct how M4b was built.** The planning agent's
+  detailed spec for M4b is not in the repository, only the one-line summary
+  under "Current plan", and Claude could not open the bank's pages. Claude
+  built from that summary and made the choices below. Every number is in
+  `config.py`, labelled as an assumption. *Default: they stay as built.*
+  - **Regularization offer ("Ponte al corriente"):** pay everything overdue
+    within 7 days and 50% of the late interest is waived. Offered from 7 to
+    60 days late, once per loan, and not after two broken promises.
+  - **Late interest:** 0.2% of the overdue amount per day late. The mock
+    bank had no late interest before; the offer needs something to waive.
+  - **Collections hold:** while a promise or an accepted offer is active and
+    not yet due, the bank cannot start a payment conversation with that
+    customer. It is derived from the commitment, not stored separately.
+  - **Payment options:** one tool. It tells anyone where and how to pay,
+    and tells a verified customer what they can pay. The "how" text for
+    each channel is invented.
+  - **Reminder opening:** the bank may write first from 5 days before a
+    payment is due. It opens exactly like a collections contact and says
+    nothing about the loan until identity is verified.
+  - **Seven new scripted tests:** reminder, offer accepted, amount below the
+    minimum, hardship, disputed debt, phone change, and "where can I pay?"
+    from an unknown number.
 
 ### Demo
 
@@ -68,11 +81,26 @@ conversation**, a new lending module.
 ### Environment
 
 - [ ] **D13. Local Python version.** This Mac has Python 3.9; Streamlit
-  Cloud will run 3.12. Exact library versions are pinned, so both run the
-  same code. *Default: stay on 3.9.*
+  Cloud will run 3.12. Checked 2026-10-03: the pinned requirements install
+  on Python 3.12.15 and every test passes there, including the scripted
+  conversations. Select **3.12** in Streamlit Cloud. *Default: stay on 3.9
+  locally.*
 
 ## Done
 
+- [x] **D18. Sources for figures labelled "bank doc"** (2026-10-03): the
+  figures are the bank's own, from the "Ponte al corriente" terms page on
+  bancoazteca.com.mx. Cash loans: 49.62% annual rate, 83.5% average CAT.
+  Consumer credit: 40.53% and 63.5%. They are in `config.py` as
+  `PUBLISHED_RATES`. Claude has not seen the page; Felipe adds its address
+  (D18b).
+- [x] **D19. Contact hours** (2026-10-03): 7:00 to 21:00, stated in the
+  shared rulebook. Enforced in code only when `ENFORCE_CONTACT_HOURS` is
+  on; it is off by default. Built on the M4b branch.
+- [x] **D20. Time zone** (2026-10-03): Mexico City, for "today" and "now".
+  Built on the M4b branch.
+- [x] **D21. Seed customer 7** (2026-10-03): 45 installments paid so far,
+  all on time, 7 remaining. For M5.
 - [x] **D6. Persona name** (2026-10-03): keep "Azul". The README will say
   that in production this would run as a module of the bank's existing
   assistant.
@@ -86,7 +114,8 @@ conversation**, a new lending module.
 - [x] **D10. Second use case** (2026-10-03): renewal conversation, replacing
   the provisional account-support module.
 - [x] **D11. Changing a contact phone number** (2026-10-03): cut. A request
-  to change it becomes a handoff.
+  to change it becomes a handoff. The tool and its tests are removed on the
+  M4b branch.
 - [x] **D14. Collections policy numbers** (2026-10-03): 15-day promise window
   kept, and flagged as something the bank does not do today (its phone
   promise is same-day). Minimum promise changes from 50% of the overdue

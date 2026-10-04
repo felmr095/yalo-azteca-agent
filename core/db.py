@@ -12,6 +12,7 @@ CORE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS customers (
     id            INTEGER PRIMARY KEY,
     full_name     TEXT NOT NULL,
+    first_name    TEXT NOT NULL,          -- all a person is called before verification
     phone         TEXT NOT NULL UNIQUE,   -- the number the chat comes from
     date_of_birth TEXT NOT NULL           -- YYYY-MM-DD
 );

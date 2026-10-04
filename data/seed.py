@@ -16,6 +16,7 @@ CUSTOMERS = [
     {
         # Current on her loan, no problems.
         "full_name": "María Guadalupe Hernández López",
+        "first_name": "María Guadalupe",
         "phone": "+52 55 5550 0101",
         "date_of_birth": "1988-03-14",
         "account": {"product": "Guardadito", "number": "4027660000001234", "balance": 1850.00},
@@ -26,6 +27,7 @@ CUSTOMERS = [
     {
         # Late by 12 days, first time.
         "full_name": "José Luis Ramírez Torres",
+        "first_name": "José Luis",
         "phone": "+52 81 5550 0102",
         "date_of_birth": "1979-11-02",
         "account": {"product": "Guardadito", "number": "4027660000002345", "balance": 210.50},
@@ -36,6 +38,7 @@ CUSTOMERS = [
     {
         # Late by 5 days.
         "full_name": "Ana Karen Flores Mendoza",
+        "first_name": "Ana Karen",
         "phone": "+52 33 5550 0103",
         "date_of_birth": "1995-07-21",
         "account": {"product": "Guardadito", "number": "4027660000003456", "balance": 95.00},
@@ -46,6 +49,7 @@ CUSTOMERS = [
     {
         # Late by 30 days, no recent payments.
         "full_name": "Miguel Ángel Sánchez Cruz",
+        "first_name": "Miguel Ángel",
         "phone": "+52 222 555 0104",
         "date_of_birth": "1984-01-30",
         "account": {"product": "Guardadito", "number": "4027660000004567", "balance": 0.00},
@@ -56,6 +60,7 @@ CUSTOMERS = [
     {
         # Late by 21 days.
         "full_name": "Juan Carlos Pérez García",
+        "first_name": "Juan Carlos",
         "phone": "+52 442 555 0106",
         "date_of_birth": "1991-05-17",
         "account": {"product": "Guardadito", "number": "4027660000006789", "balance": 40.00},
@@ -66,6 +71,7 @@ CUSTOMERS = [
     {
         # Savings only, no loan.
         "full_name": "Rosa Elena Martínez Jiménez",
+        "first_name": "Rosa Elena",
         "phone": "+52 55 5550 0105",
         "date_of_birth": "1967-09-08",
         "account": {"product": "Guardadito", "number": "4027660000005678", "balance": 7320.75},
@@ -84,8 +90,9 @@ def seed_core(conn) -> None:
     db.create_core_tables(conn)
     for c in CUSTOMERS:
         customer_id = conn.execute(
-            "INSERT INTO customers (full_name, phone, date_of_birth) VALUES (?, ?, ?)",
-            (c["full_name"], c["phone"], c["date_of_birth"]),
+            "INSERT INTO customers (full_name, first_name, phone, date_of_birth)"
+            " VALUES (?, ?, ?, ?)",
+            (c["full_name"], c["first_name"], c["phone"], c["date_of_birth"]),
         ).lastrowid
         a = c["account"]
         conn.execute(

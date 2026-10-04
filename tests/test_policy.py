@@ -1,12 +1,19 @@
-"""Core policy tests: identity, handoff and the tool doorway.
+"""Core policy tests: identity, handoff, the tool doorway and the rules
+for the bank starting a conversation.
 
 These call the tools directly, with no model involved, so they prove the
 rules hold in code regardless of what the rulebook says. Run every test
 with: python -m tests.run
 """
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import config
-from tests.helpers import UNKNOWN_PHONE, new_conversation, verify
+from tests.helpers import UNKNOWN_PHONE, new_conversation, verify  # keep first: freezes the date
+
+from core import clock
+from core.conversation import OutboundNotAllowed
 
 WRONG = {"date_of_birth": "1990-01-01", "account_last4": "0000"}
 HANDOFF = {"reason": "customer_request", "summary": "El cliente pide hablar con una persona."}
@@ -75,3 +82,56 @@ def test_unexpected_input_fields_are_rejected():
     c = new_conversation("maria", verified=True)
     _, is_error = c.call_tool("get_customer_profile", {"customer_id": 2})
     assert is_error
+
+
+# --- Outbound contact ---
+
+def at_hour(hour):
+    """Make the clock report this hour, in the bank's time zone."""
+    clock.now = lambda: datetime(2026, 10, 2, hour, 30, tzinfo=ZoneInfo(config.TIME_ZONE))
+
+
+def opening_refusal(c):
+    try:
+        c.opening_note(config.ENABLED_MODULES[0])
+    except OutboundNotAllowed as e:
+        return str(e)
+    return None
+
+
+def test_clock_runs_on_the_configured_time_zone():
+    assert str(clock.now().tzinfo) == config.TIME_ZONE == "America/Mexico_City"
+
+
+def test_opening_note_gives_the_first_name_only():
+    note = new_conversation("jose").opening_note(config.ENABLED_MODULES[0])
+    assert "José Luis" in note
+    assert "Ramírez" not in note and "Torres" not in note
+
+
+def test_bank_cannot_open_a_conversation_with_an_unknown_number():
+    assert "does not belong" in opening_refusal(new_conversation(UNKNOWN_PHONE))
+
+
+def test_contact_hours_are_not_enforced_unless_switched_on():
+    real_now = clock.now
+    try:
+        at_hour(23)
+        assert not clock.within_contact_hours()
+        assert opening_refusal(new_conversation("jose")) is None
+    finally:
+        clock.now = real_now
+
+
+def test_contact_hours_block_outbound_when_switched_on():
+    real_now = clock.now
+    config.ENFORCE_CONTACT_HOURS = True
+    try:
+        for hour, allowed in ((6, False), (7, True), (20, True), (21, False)):
+            at_hour(hour)
+            refusal = opening_refusal(new_conversation("jose"))
+            assert (refusal is None) == allowed, f"wrong answer at {hour}:30"
+            assert allowed or "contact hours" in refusal
+    finally:
+        config.ENFORCE_CONTACT_HOURS = False
+        clock.now = real_now

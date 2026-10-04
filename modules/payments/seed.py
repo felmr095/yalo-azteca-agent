@@ -1,6 +1,6 @@
-"""The collections module's own table and fake data.
+"""The payment assistant's own table and fake data.
 
-Promises are attached to the core customers by phone number. As in
+Commitments are attached to the core customers by phone number. As in
 data/seed.py, dates are "days from today": due_in_days=-10 means the
 promised date was 10 days ago.
 """
@@ -11,12 +11,14 @@ from core.clock import today
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS payment_promises (
-    id            INTEGER PRIMARY KEY,
-    loan_id       INTEGER NOT NULL REFERENCES loans(id),
-    amount        REAL NOT NULL,
-    promised_date TEXT NOT NULL,
-    status        TEXT NOT NULL,   -- active, kept or broken
-    created_on    TEXT NOT NULL
+    id              INTEGER PRIMARY KEY,
+    loan_id         INTEGER NOT NULL REFERENCES loans(id),
+    kind            TEXT NOT NULL DEFAULT 'promise',  -- promise or regularization
+    amount          REAL NOT NULL,
+    interest_waived REAL NOT NULL DEFAULT 0,          -- only for a regularization
+    promised_date   TEXT NOT NULL,
+    status          TEXT NOT NULL,                    -- active, kept or broken
+    created_on      TEXT NOT NULL
 );
 """
 
