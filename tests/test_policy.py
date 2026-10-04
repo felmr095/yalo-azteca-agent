@@ -209,3 +209,25 @@ def test_transcript_cuts_long_results_unless_asked_for_all():
     short = transcript.render(c.log.events)
     full = transcript.render(c.log.events, full=True)
     assert "promise_limits" not in short and "promise_limits" in full
+
+
+# --- The assumptions list ---
+
+def test_assumptions_list_is_up_to_date_with_config():
+    from tools import assumptions
+
+    with open(assumptions.OUTPUT_FILE, encoding="utf-8") as f:
+        assert f.read() == assumptions.render(), (
+            "config.py changed: run python -m tools.assumptions --write")
+
+
+def test_assumptions_list_covers_every_setting_and_labels_it():
+    from tools import assumptions
+
+    found = assumptions.entries()
+    named = {e["name"]: e["kind"] for e in found if e["name"]}
+    assert set(named) == {name for name in vars(config) if name.isupper()}
+    assert named["REGULARIZATION_MIN_MISSED"] == "Bank doc"
+    assert named["ON_TIME_DISCOUNT_PERCENT"] == "Assumption"
+    assert named["MODEL"] == "Setting"
+    assert all(e["note"] for e in found), "a setting has no note"

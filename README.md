@@ -179,6 +179,44 @@ It prints who said what, with what the agent did in square brackets, for
 example `[verify_identity(...) -> ok: ...]`. Add `--full` to see complete
 tool results.
 
+## What is real and what is assumed
+
+`ASSUMPTIONS.md` lists every setting of the agent with its value and where
+it comes from. It is generated from `config.py`, so it cannot drift from
+what the code enforces:
+
+    python -m tools.assumptions --write
+
+- **Bank doc:** the "Ponte al corriente" rules (2 to 22 missed payments, not
+  for a loan on a plan, once per loan), the payment channels, the cashier
+  instruction, and the published rates and CAT. These come from the bank's
+  published terms as reported in the project plan.
+- **Assumption:** everything else about policy, including the size of the
+  on-time discount, the 15-day promise window, the renewal criteria and
+  the quote formula.
+- **Invented:** the customers, their loans and their histories.
+
+`DECISIONS.md` records each decision, when it was made and why.
+
+## How AI tools were used
+
+- **The agent itself** is Claude (`claude-opus-5-5`), called through the
+  Anthropic API.
+- **The code, tests and documentation** were written with Claude Code,
+  Anthropic's coding agent, working in this repository under my direction.
+  I chose the use cases and the policies, reviewed each stage, tested the
+  live app on my phone, and approved every merge. `DECISIONS.md` is the
+  record of those decisions.
+- **The use-case specification**, including the figures taken from the
+  bank's published terms, was drafted with a separate AI planning
+  assistant and then given to Claude Code to build against. Claude Code
+  could not open the bank's pages, so it did not check those figures; they
+  are marked "bank doc" and should be confirmed against the source.
+- **The tests guard against the model's mistakes.** Policy rules are
+  enforced in code and tested without the model. The scripted
+  conversations run against the real model, but what they check is what
+  the agent did, not what it said.
+
 ## How it is built
 
 The model is Claude, called through a hand-written tool loop with no agent
@@ -224,6 +262,8 @@ after pressing "Reset conversation and data" in the sidebar.
 | `modules/renewal/`      | The loan renewal use case.                               |
 | `tests/run.py`          | The test runner.                                         |
 | `tools/transcript.py`   | Prints a conversation log as a readable chat.            |
+| `tools/assumptions.py`  | Generates `ASSUMPTIONS.md` from `config.py`.             |
+| `ASSUMPTIONS.md`        | Every setting, its value and where it comes from.        |
 | `DECISIONS.md`          | Open and settled decisions, with the reasons.            |
 
 ### Adding a use case
