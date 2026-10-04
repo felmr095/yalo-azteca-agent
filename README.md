@@ -59,6 +59,7 @@ after pressing "Reset conversation and data" in the sidebar.
 | `data/seed.py`          | Fake customers; `python -m data.seed` writes `bank.db`.  |
 | `core/modules.py`       | The contract a use case must satisfy to plug in.         |
 | `modules/payments/`     | The payment assistant use case.                          |
+| `modules/renewal/`      | The loan renewal use case.                               |
 | `tests/run.py`          | The test runner.                                         |
 | `DECISIONS.md`          | Open and settled decisions.                              |
 

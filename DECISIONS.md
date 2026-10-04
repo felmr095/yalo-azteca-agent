@@ -14,15 +14,16 @@ conversation**, a new lending module.
 
 - [x] **M4a. Deploy** the current build (2026-10-04): live at
   https://yalo-azteca-agent.streamlit.app, from `main`.
-- [ ] **M4b. Payment assistant**: reshape collections. Add the regularization
-  offer, the collections hold, payment options and the reminder opening;
-  remove the phone-change tool; seven new scripted tests. *Built on branch
-  `m4b-payment-assistant` and reconciled against the planner's spec
-  (2026-10-04). 65 policy tests and 16 scripted conversations pass. Not
-  merged: it waits for Felipe's confirmation.*
+- [x] **M4b. Payment assistant** (2026-10-04): reshaped from collections,
+  reconciled against the planner's spec, merged into `main` and pushed.
+  66 policy tests and 16 scripted conversations passed before the merge.
+  *Felipe tests the live link; if it is broken, Claude reverts the merge.*
 - [ ] **M5. Renewal module**: eligibility, quote, start application, record
   decline; the cross-module rule that late customers are never offered
-  credit; five scripted tests.
+  credit; five scripted tests. *Built on branch `m5-renewal` (2026-10-04).
+  93 policy tests pass. The 6 scripted conversations are written but have
+  not run: see D27. Not merged: it waits for them and for Felipe's
+  confirmation.*
 - [ ] **M6. Demo layer**: per-session outcome summary, two rehearsed flows,
   backup recording, today's date and time injected.
 - [ ] **M7. README** (run, test, deploy), an assumptions list generated from
@@ -45,6 +46,27 @@ conversation**, a new lending module.
   installed). Change it at
   https://github.com/felmr095/yalo-azteca-agent/settings, under General >
   Default branch.
+
+- [ ] **D27. Add credit to the Anthropic account.** On 2026-10-04 the API
+  began refusing every call: "Your credit balance is too low". Until credit
+  is added, the scripted conversations cannot run, and if the live app uses
+  the same account it cannot answer either.
+
+### Renewal module
+
+- [ ] **D28. Choices the renewal spec leaves open.** Each is in `config.py`
+  or the module, labelled as an assumption. *Default: they stay as built.*
+  - **Quote formula:** equal weekly payments at the published annual rate
+    divided by 52, without IVA. An estimate, and said to the customer as
+    one.
+  - **Who has an offer:** only customers with a pre-approved limit on
+    record. The rest do not qualify, whatever their payment record.
+  - **"Promise activity in 6 months":** any payment promise created in the
+    last 180 days, kept or not.
+  - **The 30-day wait** stops the bank from offering again. A customer who
+    declined may still ask for a loan themselves.
+  - **Opening:** the same as for payments (D23). The offer is named only
+    after verification.
 
 ### Agent behaviour
 
