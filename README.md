@@ -191,12 +191,12 @@ what the code enforces:
     python -m tools.assumptions --write
 
 - **Bank doc:** the "Ponte al corriente" rules (2 to 22 missed payments, not
-  for a loan on a plan, once per loan), the payment channels, the cashier
-  instruction, and the published rates and CAT. These come from the bank's
-  published terms as reported in the project plan.
+  for a loan on a plan), the payment channels, the cashier instruction, and
+  the published rates and CAT. These come from the bank's published terms
+  and conditions, linked in `ASSUMPTIONS.md`.
 - **Assumption:** everything else about policy, including the size of the
-  on-time discount, the 15-day promise window, the renewal criteria and
-  the quote formula.
+  on-time discount, the 15-day promise window, that the program is once
+  per loan, the renewal criteria and the quote formula.
 - **Invented:** the customers, their loans and their histories.
 
 `DECISIONS.md` records each decision, when it was made and why.
@@ -219,10 +219,12 @@ is the record of those decisions.
 
 Two limits worth knowing:
 
-- **The bank's figures were not checked by the code's author.** They came
-  from the research done in the Claude app. Claude Code could not open the
-  bank's pages, so they are marked "bank doc" and should be confirmed
-  against the source.
+- **The bank's figures were checked against one document.** They came from
+  the research done in the Claude app. On 4 October 2026 Claude Code read
+  them against the bank's "Ponte al corriente" terms and conditions, linked
+  in `ASSUMPTIONS.md`, and the values marked "bank doc" match it. The one
+  thing that document does not support is that the program can be used
+  only once per loan, so that rule is marked as an assumption.
 - **The tests guard against the model's mistakes.** Policy rules are
   enforced in code and tested without the model. The scripted
   conversations run against the real model, but what they check is what
