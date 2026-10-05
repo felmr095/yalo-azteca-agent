@@ -5,10 +5,10 @@ this file by hand: change `config.py` and run the command again.
 
 Every setting of the agent is listed here with where it comes from:
 
-- **Bank doc** (8): taken from Banco Azteca's published terms, as
-  reported in the project plan. They were not checked against the bank's own
-  pages while this was built. Source: not added yet.
-- **Assumption** (24): made up for the demo, to be replaced by the
+- **Bank doc** (8): taken from Banco Azteca's published terms.
+  Source: https://www.bancoazteca.com.mx/content/dam/azteca/docs/servicios/pagos/prestamo-sano/que-pasa-si-me-atraso/260903/tyc-ponte-al-corriente.pdf
+  (the note on `PUBLISHED_RATES_SOURCE_URL` below says when it was last read).
+- **Assumption** (25): made up for the demo, to be replaced by the
   bank's real policy.
 - **Setting** (10): a technical choice, not a claim about the bank.
 
@@ -75,7 +75,8 @@ limits are also invented; they are in `data/seed.py` and each module's
 | `PROMISE_MAX_DAYS` | `15` | Assumption | ASSUMPTION, and a proposed change: a payment promise must be dated at most this many days from today. The bank's phone promise today is same-day. |
 | (a rule, no number) |  | Assumption | ASSUMPTION, no number to set: a promise must be for at least one on-time weekly payment and at most the total overdue. A customer who is not late yet may promise a date after the due date, for one weekly payment. |
 | `MAX_BROKEN_PROMISES` | `1` | Assumption | ASSUMPTION: broken promises a customer may have and still make a new one here. 1 means: one new promise after a broken one, then a person takes over. |
-| (a rule, no number) |  | Bank doc | bank doc, no number to set: under the catch-up program the customer pays the missed weekly payments and the coming one at the on-time price. What is waived is the rest of what they would owe by the pay-by date: the late interest and the on-time discounts they had lost. Once per loan, and not for a loan that is already restructured, renewed or on a plan. |
+| (a rule, no number) |  | Bank doc | bank doc, no number to set: under the catch-up program the customer pays the missed weekly payments and one more weekly payment, all at the on-time price, and 100% of the late interest is waived. Not for a loan that is already restructured, renewed or on a plan. |
+| (a rule, no number) |  | Assumption | ASSUMPTION, no number to set: the program can be used once per loan. The bank's terms do not say how often. |
 | `REGULARIZATION_NAME` | `"Ponte al corriente"` | Bank doc | bank doc: the program's name |
 | `REGULARIZATION_MIN_MISSED` | `2` | Bank doc | bank doc: from 2 missed payments... |
 | `REGULARIZATION_MAX_MISSED` | `22` | Bank doc | bank doc: ...up to 22 |
@@ -104,7 +105,7 @@ limits are also invented; they are in `data/seed.py` and each module's
 
 | Setting | Value | Basis | Note |
 |---|---|---|---|
-| `PUBLISHED_RATES_SOURCE_URL` | `""` | Bank doc | SOURCE NEEDED: the address of Banco Azteca's "Ponte al corriente" terms page, the source of every "bank doc" value in this file. Claude could not open the page to check any of them. |
+| `PUBLISHED_RATES_SOURCE_URL` | `"https://www.bancoazteca.com.mx/content/dam/azteca/docs/servicios/pagos/prestamo-sano/que-pasa-si-me-atraso/260903/tyc-ponte-al-corriente.pdf"` | Bank doc | bank doc: the address of Banco Azteca's "Ponte al corriente" terms and conditions, the source of every "bank doc" value in this file. Referenced by address only; the document is not kept in this repository. Read on 2026-10-04: the "bank doc" values match it. It gives the rates and CAT as valid from 1 May to 31 October 2026, and the program as running to 31 December 2026. |
 | `PUBLISHED_RATES` | `{"Préstamo personal": {"annual_rate": 49.62, "cat": 83.5}, "Crédito de consumo": {"annual_rate": 40.53, "cat": 63.5}}` | Bank doc | Annual interest rate and average CAT per product, in percent, without IVA. The renewal quote reads them. |
 
 ## Demo guardrails

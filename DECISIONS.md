@@ -36,14 +36,6 @@ conversation**, a new lending module.
 
 ## Open
 
-### Agent behaviour
-
-- [ ] **D18b. Paste the address of the "Ponte al corriente" terms page**
-  into `PUBLISHED_RATES_SOURCE_URL` in `config.py`. Reference it by address
-  only; no PDFs in the repository. See D18 under Done. *Felipe will do this
-  himself. Afterwards run `python -m tools.assumptions --write`, or a
-  policy test fails because `ASSUMPTIONS.md` is out of date.*
-
 ### Demo
 
 - [ ] **D12. Demo script and backup recording.** The script is the
@@ -60,6 +52,17 @@ conversation**, a new lending module.
 
 ## Done
 
+- [x] **D18b. Source of the "bank doc" values** (2026-10-04): the address of
+  the "Ponte al corriente" terms and conditions is in
+  `PUBLISHED_RATES_SOURCE_URL`. Links only; no PDFs in the repository.
+  Claude read the document that day. It confirms: 2 to 22 weeks late; no
+  loans on a plan, restructured or renewed; 100% of late interest waived;
+  payment of the weeks late plus one more, at the on-time price; the five
+  things the customer must be told; the instruction for the cashier; and
+  the rates and CAT. It does not say the program is once per loan, so that
+  rule is now labelled an assumption. Collection agencies registry
+  (REDECO), for the write-up:
+  https://www.bancoazteca.com.mx/content/dam/azteca/docs/footer/despachos-de-cobranza/260909/redeco-ago2026.pdf
 - [x] **D5. Reply speed** (2026-10-04): closed; `EFFORT` stays "medium". The
   two live sessions showed 3 to 6 seconds per reply, which is fine for
   WhatsApp and for the demo. Not worth the credit to test "low".
